@@ -1,0 +1,739 @@
+TÀI LIỆU PRODUCT DISCOVERY: NOVACHAT
+AI
+Nền tảng Chatbot AI hỗ trợ doanh nghiệp & Chăm sóc khách hàng đa kênh
+Vai trò: Senior Product Manager | Phiên bản: v2.0 (Tối ưu hóa Lộ trình 6 tuần) | Trạng thái: Hoàn thiện thiết kế
+
+1. PRODUCT VISION
+Mô tả tầm nhìn sản phẩm: NovaChat AI là nền tảng Chatbot AI đa kênh được thiết kế để tự động hóa quy
+trình chăm sóc khách hàng (CSKH), kết hợp linh hoạt giữa sức mạnh của Mô hình ngôn ngữ lớn (LLM) và quy
+trình kiểm soát chặt chẽ của con người (Agent Takeover). Sản phẩm hướng tới việc trở thành một giải pháp
+công nghệ toàn diện, triển khai chớp nhoáng, dễ dàng tích hợp để tối ưu hóa trải nghiệm người dùng cuối và
+giảm tải áp lực cho đội ngũ vận hành.
+Vấn đề sản phẩm giải quyết:
+• Các chatbot theo kịch bản tĩnh (Rule-based) quá cứng nhắc, không thể hiểu ngữ cảnh tự nhiên và gây ức
+chế cho khách hàng khi gặp các câu hỏi nằm ngoài kịch bản.
+• Nhân viên CSKH bị quá tải bởi khối lượng lớn các câu hỏi lặp đi lặp lại về chính sách, giá cả, dẫn đến tốc
+độ phản hồi chậm và bỏ lỡ khách hàng tiềm năng.
+• Việc huấn luyện bot truyền thống đòi hỏi kỹ thuật cao, phức tạp và không thể cập nhật khẩn cấp dữ liệu
+khi doanh nghiệp thay đổi chính sách/sản phẩm.
+Giá trị cốt lõi cho người dùng:
+• Vận hành độc lập & Bảo mật (Workspace): Cơ chế đa doanh nghiệp độc lập giúp dữ liệu và cấu hình bot
+hoàn toàn tách biệt.
+• "Bộ não" AI tự học chuyên sâu (Knowledge Base): Cho phép Admin "dạy" bot dễ dàng bằng cách kéo thả
+file tài liệu (PDF, DOCX, TXT) hoặc nhập văn bản tự do, tự động hóa luồng RAG & Vector Database.
+• Sự tiếp quản mượt mà của con người (Live-chat Inbox & Takeover): Con người luôn là chốt chặn cuối
+cùng. Hệ thống cảnh báo real-time giúp Agent nhảy vào tiếp quản cuộc trò chuyện ngay lập tức khi phát
+hiện ca phức tạp hoặc khách hàng yêu cầu.
+[*] Định hướng dài hạn (Assumption): Sau khi tối ưu hóa MVP trên kênh Website, hệ thống sẽ mở rộng kết nối API
+Omnichannel thực sự đến Facebook Messenger, Zalo, WhatsApp và tích hợp phân tích phễu chuyển đổi dữ liệu sâu.
+
+NovaChat AI - Product Discovery Document
+
+1
+
+2. USER PERSONA
+Persona 1: Admin Doanh nghiệp (Quản trị viên)
+Bối cảnh & Độ tuổi: 30–45 tuổi, Chủ doanh nghiệp vừa và nhỏ (SME) hoặc Trưởng bộ phận Chăm sóc
+khách hàng (Assumption).
+Mục tiêu chính: Cắt giảm chi phí nhân sự trực page, tự động hóa tối đa các câu hỏi FAQ và kiểm soát
+được nội dung AI trả lời để đảm bảo không sai lệch chính sách công ty.
+Pain points: Không biết lập trình, lo ngại chatbot AI tự sáng tạo thông tin sai sự thật (hallucination) gây
+khủng hoảng truyền thông.
+Hành vi sử dụng: Thường xuyên truy cập Dashboard để upload tài liệu mới, tinh chỉnh System Prompt
+và copy mã nhúng Widget để gắn vào website doanh nghiệp.
+Mức độ am hiểu công nghệ: Trung bình khá (Thạo các phần mềm SaaS, không biết code).
+
+Persona 2: Agent (Nhân viên Chăm sóc khách hàng)
+Bối cảnh & Độ tuổi: 20–28 tuổi, nhân viên trực tổng đài hoặc nhân viên trực chat của doanh nghiệp
+(Assumption).
+Mục tiêu chính: Nhanh chóng nắm bắt ngữ cảnh các cuộc hội thoại phức tạp mà Bot không xử lý được
+để vào tư vấn chuyên sâu, chốt đơn hàng.
+Pain points: Bị gián đoạn thông tin, phải yêu cầu khách hàng giải thích lại từ đầu khi chuyển giao từ Bot
+sang Người; không biết lúc nào khách hàng đang cần mình hỗ trợ gấp.
+Hành vi sử dụng: Túc trực 24/7 trên màn hình Hộp thư tập trung (Omnibox), theo dõi dòng chat của AI,
+nhận thông báo push để bấm "Tiếp nhận" xử lý thủ công.
+Mức độ am hiểu công nghệ: Trung bình.
+
+NovaChat AI - Product Discovery Document
+
+2
+
+Persona 3: End-User (Khách hàng cuối)
+Bối cảnh & Độ tuổi: Mọi đối tượng khách hàng truy cập website của doanh nghiệp để tìm hiểu thông tin
+hoặc mua hàng (Assumption).
+Mục tiêu chính: Nhận được câu trả lời chính xác, ngay lập tức (Real-time) cho các câu hỏi về giá, tính
+năng, chính sách bảo hành vào bất cứ khung giờ nào.
+Pain points: Ghét việc phải chờ đợi nhân viên phản hồi lâu; bực bội với các bot trả lời sai form hoặc
+không có tùy chọn để gặp con người khi cần.
+Hành vi sử dụng: Nhấp vào khung chat nổi ở góc màn hình, tương tác bằng văn bản, bấm nút "Gặp
+nhân viên hỗ trợ" khi có nhu cầu đặc biệt.
+Mức độ am hiểu công nghệ: Đa dạng từ thấp đến cao.
+
+3. SCENARIO (TÌNH HUỐNG SỬ DỤNG)
+Tình huống 1: Cập nhật khẩn cấp chính sách khuyến mãi (Knowledge Ingestion)
+Bối cảnh: Doanh nghiệp vừa tung ra chương trình Flash Sale áp dụng từ ngày mai. Admin cần chatbot
+nắm rõ thông tin này ngay tức khắc.
+Vấn đề: Việc lập trình lại kịch bản chatbot thông thường mất từ vài ngày đến cả tuần.
+Giải quyết: Admin đăng nhập vào NovaChat AI, truy cập kho Tri thức, kéo thả file Word chứa thể lệ
+Flash Sale. Hệ thống tự động bóc tách nội dung, phân mảnh (chunking) và cập nhật vào Vector
+Database chỉ trong 1 phút. Bot ngay lập tức có thể tư vấn chính xác cho khách hàng.
+
+Tình huống 2: Trải nghiệm mượt mà khi rớt mạng hoặc tải lại trang (Session Persistence)
+Bối cảnh: Khách hàng đang chat với Bot trên website để tìm hiểu gói dịch vụ VIP thì vô tình bấm nút F5
+làm tải lại trang web.
+Vấn đề: Khách hàng ngại phải gõ lại câu hỏi và làm mất mạch tư vấn trước đó.
+Giải quyết: Nhờ cơ chế lưu trữ lịch sử phiên chat ngắn hạn tại LocalStorage, ngay khi trang web được
+tải lại, toàn bộ nội dung hội thoại cũ lập tức hiển thị nguyên vẹn, khách hàng tiếp tục cuộc trò chuyện mà
+không gặp bất kỳ gián đoạn nào.
+
+NovaChat AI - Product Discovery Document
+
+3
+
+Tình huống 3: Can thiệp kịp thời đối với khiếu nại (Human Takeover)
+Bối cảnh: Khách hàng nhận sai sản phẩm và nhắn tin lên khung chat với thái độ giận dữ, đòi gặp quản
+lý.
+Vấn đề: AI không có thẩm quyền và kỹ năng xử lý các ca khủng hoảng tâm lý khách hàng phức tạp.
+Giải quyết: Khách hàng bấm nút "Gặp nhân viên hỗ trợ" (hoặc AI tự động nhận diện độ tin cậy thấp).
+Hệ thống lập tức đổ chuông cảnh báo trên trình duyệt của Agent. Agent nhấp vào luồng chat, cuộn lên
+đọc lịch sử để nắm bắt vấn đề, rồi bấm "Tiếp nhận". Hệ thống ngắt Bot hoàn toàn, Agent trực tiếp gõ tin
+nhắn xoa dịu khách hàng kịp thời.
+
+4. EPIC BREAKDOWN
+Epic Name
+
+Mô tả chi tiết
+
+Giá trị mang lại
+
+Epic 1: System & Auth
+
+Quản lý tài khoản Admin/Agent thông qua
+
+Bảo mật dữ liệu tối
+
+Email/Mật khẩu hoặc Google SSO; quản
+
+đa, tách biệt tài
+
+lý cơ chế đa doanh nghiệp (Workspace)
+
+nguyên giữa các
+
+biệt lập; phân quyền thành viên chặt chẽ.
+
+doanh nghiệp độc
+
+Persona liên
+kết
+Admin
+
+lập.
+Epic 2: Knowledge
+
+Hệ thống tiếp nhận tài liệu đầu vào (PDF,
+
+Xây dựng "bộ não"
+
+Base
+
+DOCX, TXT), văn bản tự do (Raw text)
+
+tri thức chính xác
+
+hoặc link website (URL). Backend tự động
+
+cho AI dựa trên dữ
+
+trích xuất, phân tách đoạn nhỏ (chunking)
+
+liệu thực tế của
+
+và mã hóa đưa vào Vector Database.
+
+doanh nghiệp.
+
+Biên tập System Prompt định hình vai trò/
+
+Cá nhân hóa
+
+luật ứng xử cho Bot; cấu hình trực quan
+
+thương hiệu
+
+diện mạo Widget (màu sắc, avatar, câu
+
+chatbot dễ dàng và
+
+chào); tự động sinh mã nhúng script ngắn.
+
+triển khai lên
+
+Epic 3: Bot Config
+
+Admin
+
+Admin
+
+website chớp
+nhoáng không cần
+code.
+Epic 4: End-user
+
+Khung chat nổi trên website tương tác thời
+
+Tạo trải nghiệm trò
+
+Widget
+
+gian thực qua giao thức WebSocket; hiển
+
+chuyện mượt mà,
+
+thị hiệu ứng gõ chữ (Typing Indicator);
+
+tự nhiên và liên tục
+
+đồng bộ LocalStorage; tích hợp nút kích
+
+cho khách hàng
+
+hoạt Handoff.
+
+cuối.
+
+NovaChat AI - Product Discovery Document
+
+End-User
+
+4
+
+Epic Name
+
+Mô tả chi tiết
+
+Giá trị mang lại
+
+Epic 5: Live-chat Inbox
+
+Bảng điều khiển trung tâm Omnichannel
+
+Chốt chặn tối ưu
+
+Omnibox phân luồng chat theo các tab
+
+giúp con người
+
+(Cần xử lý, Của tôi, Bot xử lý); hệ thống
+
+kiểm soát và tiếp
+
+push notification/đổ chuông cảnh báo; cơ
+
+quản luồng chat
+
+chế Takeover ngắt bot và đóng ticket.
+
+mượt mà (Human-
+
+Persona liên
+kết
+Agent
+
+in-the-loop).
+
+5. USER STORIES
+Dưới đây là các User Stories tiêu biểu kèm theo Tiêu chí nghiệm thu (Acceptance Criteria) và Độ ưu tiên dành
+cho MVP:
+• US01 (Epic 1 - Auth & Phân quyền): As an Admin, I want to invite new members via email and assign
+roles (Admin/Agent), so that my staff can access the system with appropriate permissions.
+PRIORITY: HIGH
+
+◦ AC1: Hệ thống gửi được email lời mời chứa liên kết xác nhận.
+◦ AC2: Chỉ tài khoản Admin mới có quyền truy cập màn hình Cấu hình Bot và Quản lý tài liệu.
+◦ AC3: Tài khoản Agent sau khi đăng nhập chỉ được phép truy cập vào phân hệ Hộp thư Live-chat.
+
+• US02 (Epic 2 - Kho tri thức): As an Admin, I want to upload text files (PDF, DOCX, TXT) up to 10MB, so
+that the system can automatically parse and vectorize them into the knowledge base.
+PRIORITY: HIGH
+
+◦ AC1: Hệ thống chặn file > 10MB hoặc sai định dạng và đưa ra cảnh báo tường minh.
+◦ AC2: Hiển thị danh sách tệp đính kèm kèm trạng thái xử lý trực quan ("Đang xử lý", "Thành công").
+◦ AC3: Hiển thị chính xác số đoạn (chunks) dữ liệu sau khi hệ thống backend thực hiện phân tách thành
+công.
+
+• US03 (Epic 3 - Cấu hình Bot): As an Admin, I want to customize the chatbot's primary theme color and
+avatar, so that the chat widget matches our corporate brand identity.
+PRIORITY: MEDIUM
+
+◦ AC1: Cho phép nhập mã màu Hex (Ví dụ: #2563eb) và cập nhật trực tiếp màu chủ đạo khung chat.
+◦ AC2: Cho phép upload hình ảnh avatar riêng cho Bot.
+◦ AC3: Đoạn mã script tự động sinh ra phải chứa chính xác các tham số định cấu hình giao diện đã lưu.
+
+NovaChat AI - Product Discovery Document
+
+5
+
+• US04 (Epic 4 - Widget Trải nghiệm): As an End-user, I want to see a typing indicator when the bot is
+preparing a response, so that I know the system is actively processing my question.
+PRIORITY: HIGH
+
+◦ AC1: Hiển thị hiệu ứng chuyển động 3 dấu chấm nhấp nháy ngay khi nhấn gửi tin nhắn.
+◦ AC2: Hiệu ứng phải tự động biến mất và thay thế bằng nội dung tin nhắn ngay khi LLM bắt đầu trả về
+ký tự đầu tiên.
+◦ AC3: Tốc độ phản hồi và truyền tải tin nhắn dạng văn bản phải đảm bảo thời gian thực thông qua giao
+thức WebSocket.
+
+• US05 (Epic 5 - Tiếp quản hội thoại): As an Agent, I want to click the "Tiếp nhận" button on an active
+unassigned chat session, so that the AI bot temporarily stops responding and I can chat manually with the
+customer.
+PRIORITY: HIGH
+
+◦ AC1: Khi click "Tiếp nhận", trạng thái phiên chat đổi thành "Mine" (Của tôi) và ngắt hoàn toàn cổng tự
+động trả lời của LLM trên luồng này.
+◦ AC2: Agent có thể cuộn ngược màn hình để đọc lại toàn bộ lịch sử trò chuyện trước đó giữa Bot và
+khách hàng.
+◦ AC3: Khung nhập liệu văn bản được mở khóa cho phép Agent soạn và gửi tin nhắn real-time tới Widget
+của khách hàng.
+
+6. FEATURE IDENTIFICATION
+Feature Name
+
+Mô tả tính năng
+
+Thuộc Epic
+
+Phân loại
+
+Google SSO & Auth Core
+
+Đăng nhập hệ thống bằng Email/Mật khẩu
+
+Epic 1
+
+CORE
+
+Epic 1
+
+CORE
+
+Epic 2
+
+CORE
+
+Epic 2
+
+CORE
+
+hoặc phương thức một chạm Google SignIn.
+Multi-Workspace
+
+Khởi tạo không gian làm việc độc lập cho
+
+Management
+
+từng doanh nghiệp để bảo mật dữ liệu.
+
+Drag-and-Drop File
+
+Tải lên tài liệu PDF, DOCX, TXT dưới
+
+Ingestion
+
+10MB để tự động trích xuất văn bản và
+Vectorize.
+
+Raw Text FAQ Editor
+
+Form nhập liệu văn bản tự do giúp cập nhật
+khẩn cấp các câu hỏi ngắn hoặc FAQ trực
+tiếp.
+
+NovaChat AI - Product Discovery Document
+
+6
+
+Feature Name
+
+Mô tả tính năng
+
+Thuộc Epic
+
+Phân loại
+
+URL Web Crawler
+
+Nhập đường dẫn URL, hệ thống tự động
+
+Epic 2
+
+NICE-TO-HAVE
+
+Epic 3
+
+CORE
+
+Epic 3
+
+CORE
+
+Epic 4
+
+CORE
+
+Epic 4
+
+SUPPORTING
+
+Epic 4
+
+CORE
+
+Epic 5
+
+CORE
+
+Epic 5
+
+SUPPORTING
+
+Epic 5
+
+CORE
+
+quét bóc tách chữ thuần để nạp vào cơ sở
+dữ liệu.
+System Prompt Editor
+
+Ô biên tập văn bản lớn giúp Admin thiết lập
+luật, vai trò và giới hạn chuyên môn của
+Bot.
+
+Widget Customizer &
+
+Tùy chỉnh màu sắc, Avatar, lời chào và sinh
+
+Embed Code
+
+đoạn mã script nhúng nhanh vào Website
+HTML.
+
+WebSocket Real-time
+
+Khung chat nổi phía Client truyền tải tin
+
+Widget
+
+nhắn dạng text siêu tốc hai chiều bằng
+WebSocket.
+
+Typing Indicator &
+
+Hiển thị 3 dấu chấm nhấp nháy khi bot
+
+LocalCache
+
+soạn thảo và lưu LocalStorage giữ lịch sử
+khi khách F5.
+
+Human Handoff Trigger
+
+Nút bấm "Gặp nhân viên" luôn nổi bật trên
+
+Button
+
+thanh Widget hành động để khách hàng
+yêu cầu người thật.
+
+Agent Omnibox
+
+Bảng điều khiển tập trung phân luồng danh
+
+Dashboard
+
+sách đoạn chat trực quan theo các tab
+trạng thái.
+
+Browser Notification Cảnh
+
+Đổ chuông thanh âm hoặc Push
+
+báo
+
+Notification trên trình duyệt khi có tín hiệu
+Handoff khẩn cấp.
+
+Takeover & Resolve
+
+Nút "Tiếp nhận" để tạm dừng Bot giành
+
+Control
+
+quyền chat thủ công và nút "Hoàn thành"
+để đóng phiên chat.
+
+7. PRODUCT BACKLOG (MVP SCOPE)
+ID
+PB-01
+
+User Story Summary
+
+Feature Mapping
+
+Đăng nhập hệ thống bảo mật bằng
+
+Google SSO & Auth Core
+
+Độ ưu tiên
+
+Estimate
+
+HIGH
+
+M
+
+Email hoặc Google SSO.
+
+NovaChat AI - Product Discovery Document
+
+7
+
+ID
+PB-02
+
+PB-03
+
+PB-04
+
+User Story Summary
+
+Feature Mapping
+
+Độ ưu tiên
+
+Estimate
+
+Tạo Workspace riêng và gửi mail mời
+
+Multi-Workspace
+
+HIGH
+
+M
+
+thành viên, phân quyền Admin/Agent.
+
+Management
+
+Kéo thả file tài liệu PDF/DOCX/TXT
+
+Drag-and-Drop File
+
+HIGH
+
+L
+
+để backend cắt nhỏ và mã hóa vector.
+
+Ingestion
+
+Nhập trực tiếp các đoạn FAQ ngắn
+
+Raw Text FAQ Editor
+
+HIGH
+
+S
+
+URL Web Crawler
+
+LOW
+
+L
+
+System Prompt Editor
+
+HIGH
+
+M
+
+Cấu hình màu sắc, Avatar khung chat
+
+Widget Customizer &
+
+HIGH
+
+M
+
+và sinh mã nhúng script dán vào
+
+Embed Code
+
+HIGH
+
+L
+
+MEDIUM
+
+S
+
+HIGH
+
+S
+
+Agent Omnibox Dashboard
+
+HIGH
+
+L
+
+Bật thông báo đẩy và đổ chuông trình
+
+Browser Notification Cảnh
+
+MEDIUM
+
+M
+
+duyệt máy tính khi có yêu cầu hỗ trợ
+
+báo
+
+hoặc thông tin khẩn cấp dạng văn bản
+thô.
+PB-05
+
+Nhập link website để hệ thống tự động
+cào văn bản nạp tri thức (Tùy chọn).
+
+PB-06
+
+Biên tập System Prompt quy định vai
+trò, hành vi và phong cách ứng xử của
+Bot.
+
+PB-07
+
+HTML website.
+PB-08
+
+Chat hai chiều thời gian thực siêu tốc
+
+WebSocket Real-time
+
+giữa khách hàng và AI qua
+
+Widget
+
+WebSocket.
+PB-09
+
+Hiển thị hiệu ứng ba dấu chấm đang
+
+Typing Indicator &
+
+gõ và lưu cache LocalStorage khi tải
+
+LocalCache
+
+lại trang.
+PB-10
+
+Bấm nút "Gặp nhân viên hỗ trợ" trên
+
+Human Handoff Trigger
+
+khung chat để gửi yêu cầu chuyển
+
+Button
+
+giao.
+PB-11
+
+Màn hình Agent giám sát danh sách
+hội thoại chia theo các tab phân luồng
+thông minh.
+
+PB-12
+
+khẩn cấp.
+
+NovaChat AI - Product Discovery Document
+
+8
+
+ID
+PB-13
+
+User Story Summary
+
+Feature Mapping
+
+Agent bấm nút "Tiếp nhận" để ngắt
+
+Takeover & Resolve Control
+
+Độ ưu tiên
+
+Estimate
+
+HIGH
+
+L
+
+bot chat tay và bấm "Hoàn thành" để
+đóng luồng.
+
+8. ROADMAP TỐI ƯU HÓA (RÚT NGẮN CÒN 6 TUẦN - AGILE SCRUM)
+Để đẩy nhanh tiến độ go-live và tối ưu hóa vòng lặp phản hồi, lộ trình phát triển NovaChat AI được tinh chỉnh
+từ 10 tuần xuống còn 6 tuần. Trong đó, hệ thống phân bổ 2 tuần đầu tập trung xây dựng nền tảng và dành
+trọn vẹn 4 tuần cuối cho mô hình Scrum Sprint, Usability Testing, ghi nhận phản hồi thực tế và cập
+nhật liên tục Backlog. Đội ngũ gồm 5 thành viên áp dụng chặt chẽ Pair Programming và họp Daily Stand-up
+15 phút hàng ngày để kiểm soát rủi ro tiến độ.
+
+Tuần 1 & Tuần 2: Khởi động Dự án, Thiết kế Hệ thống & Chuẩn bị Backlog (Sprint 0)
+Nội dung thực hiện: Phân tích chi tiết yêu cầu kỹ thuật dựa trên MVP scope; thiết kế sơ đồ kiến trúc hệ
+thống (Client-Backend-LLM); setup cấu trúc cơ sở dữ liệu PostgreSQL cho User/History và ChromaDB cho
+Vector DB. Cài đặt môi trường framework tối ưu (Python FastAPI cho Backend và React.js cho Frontend).
+Đội ngũ tiến hành họp lập kế hoạch và làm mịn (refine) Product Backlog ban đầu.
+Mục tiêu cột mốc: Kho lưu trữ mã nguồn (Repository) và môi trường phát triển của toàn nhóm sẵn sàng
+hoạt động độc lập.
+
+Tuần 3 & Tuần 4: Scrum Sprint 1 - Triển khai Tính năng Cốt lõi & Usability Testing Đợt 1
+Nội dung thực hiện: Tập trung phát triển các cấu phần hạ tầng quan trọng: Hệ thống Đăng ký/Đăng nhập
+(PB-01), Quản lý Không gian làm việc đa doanh nghiệp (PB-02). Xây dựng cấu phần xử lý tri thức chuyên
+sâu (Knowledge Base): Luồng Drag-and-Drop file tài liệu PDF/DOCX/TXT (PB-03) và bộ công cụ nhập liệu
+văn bản thô Raw text (PB-04). Tích hợp module xử lý chunking văn bản tự động và mã hóa nạp vào Vector
+Database.
+Usability Testing & Vòng lặp phản hồi: Cuối tuần 4, triển khai thử nghiệm độ tiện dụng (Usability
+Testing) nội bộ và mời một số Admin doanh nghiệp dùng thử giao diện Quản lý tài liệu. Đội ngũ ghi nhận
+phản hồi thực tế về trải nghiệm tải tệp, tốc độ trích xuất văn bản; tiến hành đánh giá lại mức độ ưu tiên và
+cập nhật trực tiếp vào Product Backlog để chuẩn bị cho Sprint kế tiếp.
+Mục tiêu cột mốc: "Bộ não" AI nạp tri thức thành công; phân quyền hệ thống Admin/Agent vận hành biệt
+lập ổn định.
+
+NovaChat AI - Product Discovery Document
+
+9
+
+Tuần 5 & Tuần 6: Scrum Sprint 2 - Hoàn thiện Khung chat Thời gian thực, Live-chat Inbox,
+Usability Testing Toàn diện & Nghiệm thu (MVP Live)
+Nội dung thực hiện: Phát triển đồng thời Phân hệ Cấu hình Bot (PB-06, PB-07) và Khung chat Client
+(PB-08, PB-09) giao tiếp siêu tốc qua giao thức WebSocket real-time kèm hiệu ứng Typing Indicator. Triển
+khai Phân hệ Hộp thư tập trung dành cho Agent (PB-11) tích hợp Push Notification cảnh báo (PB-12) và cơ
+chế Takeover ngắt bot giành quyền chat thủ công (PB-13).
+Usability Testing & Hoàn thiện sản phẩm: Tiến hành chuỗi Usability Testing toàn diện trên toàn bộ kịch
+bản người dùng (End-to-End Scenario): Khách hàng truy cập website -> chat real-time với AI -> AI trích
+xuất tri thức từ Vector DB trả lời -> Khách bấm nút Handoff -> Hệ thống đổ chuông báo động -> Agent mở
+Dashboard xem lại lịch sử và bấm nút "Tiếp nhận" thành công. Ghi nhận tất cả các lỗi giao diện, độ trễ
+WebSocket hoặc bất cập trong trải nghiệm để thực hiện cập nhật mã nguồn khẩn cấp. Cập nhật các yêu
+cầu tồn đọng vào Post-MVP Backlog phục vụ cho định hướng mở rộng dài hạn.
+Mục tiêu cột mốc: Tiến hành System Test toàn diện, triển khai sản phẩm trực tiếp (Deployment) lên nền
+tảng đám mây (Railway/Render/Vercel) ở chế độ Free tier. Sản phẩm chính thức Go-live phục vụ phiên
+báo cáo nghiệm thu và Demo sản phẩm cuối kỳ thành công tốt đẹp.
+
+NovaChat AI - Product Discovery Document
+
+10
+
+
