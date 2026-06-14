@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 from app.db.session import Base
 
 class User(Base):
@@ -10,4 +11,5 @@ class User(Base):
     role = Column(String, default="agent") # admin hoặc agent
     is_active = Column(Boolean, default=True)
 
-    # TODO: Thêm relationship tới bảng Workspace sau
+    workspaces = relationship("Workspace", back_populates="owner")
+
