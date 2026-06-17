@@ -1,0 +1,27 @@
+1. PRODUCT VISION
+Mô tả tầm nhìn sản phẩm: NovaChat AI là nền tảng Chatbot AI đa kênh được thiết kế để tự động hóa quy
+trình chăm sóc khách hàng (CSKH), kết hợp linh hoạt giữa sức mạnh của Mô hình ngôn ngữ lớn (LLM) và quy
+trình kiểm soát chặt chẽ của con người (Agent Takeover). Sản phẩm hướng tới việc trở thành một giải pháp
+công nghệ toàn diện, triển khai chớp nhoáng, dễ dàng tích hợp để tối ưu hóa trải nghiệm người dùng cuối và
+giảm tải áp lực cho đội ngũ vận hành.
+Vấn đề sản phẩm giải quyết:
+• Các chatbot theo kịch bản tĩnh (Rule-based) quá cứng nhắc, không thể hiểu ngữ cảnh tự nhiên và gây ức
+chế cho khách hàng khi gặp các câu hỏi nằm ngoài kịch bản.
+• Nhân viên CSKH bị quá tải bởi khối lượng lớn các câu hỏi lặp đi lặp lại về chính sách, giá cả, dẫn đến tốc
+độ phản hồi chậm và bỏ lỡ khách hàng tiềm năng.
+• Việc huấn luyện bot truyền thống đòi hỏi kỹ thuật cao, phức tạp và không thể cập nhật khẩn cấp dữ liệu
+khi doanh nghiệp thay đổi chính sách/sản phẩm.
+Giá trị cốt lõi cho người dùng:
+• Vận hành độc lập & Bảo mật (Workspace): Cơ chế đa doanh nghiệp độc lập giúp dữ liệu và cấu hình bot
+hoàn toàn tách biệt.
+• "Bộ não" AI tự học chuyên sâu (Knowledge Base): Cho phép Admin "dạy" bot dễ dàng bằng cách kéo thả
+file tài liệu (PDF, DOCX, TXT) hoặc nhập văn bản tự do, tự động hóa luồng RAG & Vector Database.
+• Sự tiếp quản mượt mà của con người (Live-chat Inbox & Takeover): Con người luôn là chốt chặn cuối
+cùng. Hệ thống cảnh báo real-time giúp Agent nhảy vào tiếp quản cuộc trò chuyện ngay lập tức khi phát
+hiện ca phức tạp hoặc khách hàng yêu cầu.
+[*] Định hướng dài hạn (Assumption): Sau khi tối ưu hóa MVP trên kênh Website, hệ thống sẽ mở rộng kết nối API
+Omnichannel thực sự đến Facebook Messenger, Zalo, WhatsApp và tích hợp phân tích phễu chuyển đổi dữ liệu sâu.
+
+NovaChat AI - Product Discovery Document
+
+1

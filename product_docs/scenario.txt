@@ -1,0 +1,29 @@
+3. SCENARIO (TÌNH HUỐNG SỬ DỤNG)
+Tình huống 1: Cập nhật khẩn cấp chính sách khuyến mãi (Knowledge Ingestion)
+Bối cảnh: Doanh nghiệp vừa tung ra chương trình Flash Sale áp dụng từ ngày mai. Admin cần chatbot
+nắm rõ thông tin này ngay tức khắc.
+Vấn đề: Việc lập trình lại kịch bản chatbot thông thường mất từ vài ngày đến cả tuần.
+Giải quyết: Admin đăng nhập vào NovaChat AI, truy cập kho Tri thức, kéo thả file Word chứa thể lệ
+Flash Sale. Hệ thống tự động bóc tách nội dung, phân mảnh (chunking) và cập nhật vào Vector
+Database chỉ trong 1 phút. Bot ngay lập tức có thể tư vấn chính xác cho khách hàng.
+
+Tình huống 2: Trải nghiệm mượt mà khi rớt mạng hoặc tải lại trang (Session Persistence)
+Bối cảnh: Khách hàng đang chat với Bot trên website để tìm hiểu gói dịch vụ VIP thì vô tình bấm nút F5
+làm tải lại trang web.
+Vấn đề: Khách hàng ngại phải gõ lại câu hỏi và làm mất mạch tư vấn trước đó.
+Giải quyết: Nhờ cơ chế lưu trữ lịch sử phiên chat ngắn hạn tại LocalStorage, ngay khi trang web được
+tải lại, toàn bộ nội dung hội thoại cũ lập tức hiển thị nguyên vẹn, khách hàng tiếp tục cuộc trò chuyện mà
+không gặp bất kỳ gián đoạn nào.
+
+NovaChat AI - Product Discovery Document
+
+3
+
+Tình huống 3: Can thiệp kịp thời đối với khiếu nại (Human Takeover)
+Bối cảnh: Khách hàng nhận sai sản phẩm và nhắn tin lên khung chat với thái độ giận dữ, đòi gặp quản
+lý.
+Vấn đề: AI không có thẩm quyền và kỹ năng xử lý các ca khủng hoảng tâm lý khách hàng phức tạp.
+Giải quyết: Khách hàng bấm nút "Gặp nhân viên hỗ trợ" (hoặc AI tự động nhận diện độ tin cậy thấp).
+Hệ thống lập tức đổ chuông cảnh báo trên trình duyệt của Agent. Agent nhấp vào luồng chat, cuộn lên
+đọc lịch sử để nắm bắt vấn đề, rồi bấm "Tiếp nhận". Hệ thống ngắt Bot hoàn toàn, Agent trực tiếp gõ tin
+nhắn xoa dịu khách hàng kịp thời.
