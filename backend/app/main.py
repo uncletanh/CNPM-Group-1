@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import users
+from app.api.v1 import users, auth, workspaces
 from app.db.session import engine, Base
 
 # Tạo tất cả các bảng trong Database (Tạm thời dùng cách này để dễ setup cho sinh viên)
@@ -23,7 +23,9 @@ app.add_middleware(
 
 # Đăng ký các router
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
-# TODO: Include thêm router của auth, workspaces sau
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["Workspaces"])
+
 
 @app.get("/")
 def read_root():

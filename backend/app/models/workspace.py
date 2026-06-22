@@ -9,4 +9,5 @@ class Workspace(Base):
     name = Column(String, index=True, nullable=False)
     owner_id = Column(Integer, ForeignKey("users.id"))
 
-    # TODO: Thêm relationship tới bảng User
+    owner = relationship("User", back_populates="workspaces")
+
