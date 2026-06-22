@@ -23,3 +23,15 @@ def create_workspace(workspace_in: WorkspaceCreate, db: Session = Depends(get_db
     db.commit()
     db.refresh(new_workspace)
     return new_workspace
+
+@router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workspace(workspace_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id, Workspace.owner_id == current_user.id).first()
+    if not workspace:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Không gian làm việc không tồn tại hoặc bạn không có quyền xóa."
+        )
+    db.delete(workspace)
+    db.commit()
+    return None
