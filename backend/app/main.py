@@ -1,4 +1,3 @@
-import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import users, auth, workspaces
@@ -14,14 +13,9 @@ app = FastAPI(
 )
 
 # Cấu hình CORS để Frontend gọi API không bị lỗi
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
-frontend_url = os.getenv("FRONTEND_URL")
-if frontend_url:
-    origins.append(frontend_url)
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"], # Port mặc định của Vite
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
