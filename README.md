@@ -1,69 +1,84 @@
-# 🚀 NovaChat AI - Hệ thống Quản lý Workspace Chatbot
+# NovaChat AI 🤖
 
-Chào mừng bạn đến với **NovaChat AI** - Đồ án Nhóm 1 môn Công nghệ Phần mềm (CNPM). 
-Đây là một hệ thống Web Application Full-Stack hiện đại dùng để khởi tạo và quản lý các Không gian làm việc (Workspace) cho Chatbot AI, được tích hợp kiến trúc UI/UX cao cấp và tính năng bảo mật chuẩn công nghiệp.
+**Dự án môn học Kiến trúc Phần mềm - Nhóm 1**
 
-![NovaChat Cover](https://via.placeholder.com/1200x400/0f172a/6366f1?text=NovaChat+AI+Workspace+Manager) <!-- Hình ảnh minh họa (có thể thay thế sau) -->
-
-## ✨ Các tính năng nổi bật
-* **Đăng nhập & Đăng ký an toàn:** Cơ chế băm mật khẩu `bcrypt` và xác thực phiên đăng nhập bằng `JWT (JSON Web Token)`.
-* **Giao diện Kính mờ (Glassmorphism):** Thiết kế giao diện cực kỳ hiện đại, cao cấp với Tailwind CSS v4, bao gồm chế độ Dark Mode mặc định.
-* **Quản lý Workspace:** Tạo mới, xem danh sách và xóa các Không gian làm việc.
-* **Responsive Design:** Tương thích hiển thị từ màn hình máy tính đến thiết bị di động.
-* **Bảo vệ Route (Protected Routes):** Chặn các truy cập trái phép vào trang Dashboard.
-
-## 🛠️ Công nghệ sử dụng (Tech Stack)
-* **Frontend:** React 18, Vite, Tailwind CSS v4, Lucide React (Icons), React Router v6.
-* **Backend:** FastAPI (Python), SQLAlchemy (ORM), SQLite (Database mặc định).
-* **Bảo mật:** Passlib (Bcrypt), Python-Jose (JWT), CORS Middleware.
-* **Triển khai:** Docker & Docker Compose.
+NovaChat AI là nền tảng Chatbot ứng dụng RAG (Retrieval-Augmented Generation) và cơ chế Human-in-the-loop (Takeover) giúp tự động hóa khâu CSKH cho doanh nghiệp SME.
 
 ---
 
-## ⚡ Hướng dẫn cài đặt và chạy dự án
+## 🚀 1. Yêu cầu Hệ thống (Prerequisites)
 
-Dự án này đã được đóng gói hoàn chỉnh bằng **Docker**, giúp bạn bỏ qua các bước cài đặt môi trường rườm rà. Máy tính của bạn chỉ cần cài sẵn **[Docker Desktop](https://www.docker.com/products/docker-desktop/)**.
-
-### 🐳 Cách 1: Chạy bằng Docker (Khuyên dùng - Nhanh gọn nhất)
-Chỉ với 1 dòng lệnh duy nhất, toàn bộ Frontend, Backend và Database sẽ được tự động cài đặt và kết nối.
-
-1. Clone code về máy và mở Terminal tại thư mục `CNPM-Group-1`.
-2. Gõ lệnh sau để khởi chạy:
-   ```bash
-   docker compose up --build
-   ```
-3. Chờ một lát để hệ thống tải môi trường. Khi Terminal báo server đã chạy thành công, hãy mở trình duyệt web:
-   * **Giao diện Ứng dụng (Frontend):** [http://localhost:5173/login](http://localhost:5173/login)
-   * **Tài liệu API (Backend Swagger UI):** [http://localhost:8000/docs](http://localhost:8000/docs)
-
-*Để tắt server, hãy bấm `Ctrl + C` ở Terminal hoặc chạy lệnh `docker compose down`.*
+- **Python:** Phiên bản `3.11` hoặc `3.12` (Không dùng bản mới hơn để tránh lỗi biên dịch thư viện AI).
+- **Node.js:** Phiên bản `18.0.0` trở lên.
+- **Git:** Để pull/push code.
 
 ---
 
-### 💻 Cách 2: Chạy thủ công (Dành cho nhà phát triển - Dev Mode)
-Nếu bạn muốn đóng góp code hoặc chạy không dùng Docker, hãy làm theo các bước sau:
+## ⚙️ 2. Hướng dẫn Thiết lập Backend (FastAPI)
 
-**1. Khởi động Backend (FastAPI)**
-Yêu cầu: Máy đã cài `Python 3.9+`.
+Backend chứa Logic, API và bộ não AI (Langchain, ChromaDB).
+
+**Bước 1:** Di chuyển vào thư mục backend và tạo môi trường ảo (Virtual Environment):
 ```bash
 cd backend
-python -m venv venv           # Tạo môi trường ảo (Windows: venv\Scripts\activate | Mac/Linux: source venv/bin/activate)
-pip install -r requirements.txt # Cài thư viện
-uvicorn app.main:app --reload   # Chạy Server Backend (Mặc định ở cổng 8000)
+python -m venv venv
 ```
 
-**2. Khởi động Frontend (React + Vite)**
-Yêu cầu: Máy đã cài `Node.js 18+`. Mở một Terminal mới:
+**Bước 2:** Kích hoạt môi trường ảo:
+- Trên **Windows (PowerShell):** `.\venv\Scripts\activate`
+- Trên **Mac/Linux:** `source venv/bin/activate`
+*(Nếu thấy chữ `(venv)` ở đầu dòng lệnh là thành công)*
+
+**Bước 3:** Cài đặt thư viện:
 ```bash
-cd frontend
-npm install       # Cài các gói thư viện Node
-npm run dev       # Chạy Server Frontend (Mặc định ở cổng 5173)
+pip install -r requirements.txt
 ```
+
+**Bước 4:** Cấu hình biến môi trường:
+- Tạo một file tên là `.env` trong thư mục `backend/`.
+- Điền các thông tin sau vào file `.env`:
+```env
+DATABASE_URL=postgresql://[user]:[password]@[host]/[dbname]?sslmode=require
+SECRET_KEY=mot_chuoi_bi_mat_bat_ky_dai_chut_cho_an_toan
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
+
+**Bước 5:** Khởi chạy Server:
+```bash
+uvicorn app.main:app --reload
+```
+API sẽ chạy tại: `http://localhost:8000`. Xem tài liệu API tại `http://localhost:8000/docs`.
 
 ---
 
-## 👥 Danh sách Nhóm 1 - CNPM
-* **Pair 1 (Hiệp - Hiếu):** Thiết kế Database, viết API Backend (Đăng ký/Đăng nhập), Xác thực JWT.
-* **Pair 2 (Thái - Bình):** Cấu hình Frontend (Vite, TailwindCSS, Router), Thiết kế UI Login/Dashboard, Tích hợp gọi API.
+## 🎨 3. Hướng dẫn Thiết lập Frontend (React + Vite)
 
-> *Sản phẩm được phát triển nhằm mục đích phục vụ báo cáo bài tập giữa kỳ môn Công Nghệ Phần Mềm.*
+Frontend chứa giao diện trang quản trị cho Admin và Agent.
+
+**Bước 1:** Mở một cửa sổ Terminal mới, di chuyển vào thư mục frontend:
+```bash
+cd frontend
+```
+
+**Bước 2:** Cài đặt các gói thư viện Node (bao gồm TailwindCSS v4):
+```bash
+npm install
+```
+
+**Bước 3:** Khởi chạy Server phát triển:
+```bash
+npm run dev
+```
+Giao diện sẽ chạy tại: `http://localhost:5173`.
+
+---
+
+## 👨‍💻 4. Quy trình làm việc (Git Flow)
+
+Vui lòng tuân thủ quy tắc Pair Programming. **Tuyệt đối không push trực tiếp lên nhánh `main`.**
+
+1. Tạo nhánh mới: `git checkout -b feature/ten-tinh-nang`
+2. Viết code, commit.
+3. Push lên GitHub: `git push origin feature/ten-tinh-nang`
+4. Lên GitHub tạo Pull Request (PR) và nhờ Lead (Tiến Anh) vào Code Review.
