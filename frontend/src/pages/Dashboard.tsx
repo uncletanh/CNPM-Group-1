@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { Toaster } from "react-hot-toast";
+import KnowledgeBase from "./KnowledgeBase";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -16,7 +18,8 @@ import {
   Sparkles,
   Database,
   Activity,
-  Shield
+  Shield,
+  ShieldAlert
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -132,6 +135,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
+      <Toaster position="top-right" />
       {/* Background radial glow blobs */}
       <div className="absolute top-0 right-1/4 h-[600px] w-[600px] rounded-full bg-indigo-600/5 blur-[150px] pointer-events-none"></div>
       <div className="absolute bottom-0 left-1/3 h-[500px] w-[500px] rounded-full bg-violet-600/5 blur-[130px] pointer-events-none"></div>
@@ -186,6 +190,18 @@ const Dashboard = () => {
             >
               <Bot className="h-4 w-4" />
               <span>Cấu hình Bot AI</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("knowledge")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer ${
+                activeTab === "knowledge"
+                  ? "bg-gradient-to-r from-indigo-500/10 to-transparent border-l-2 border-indigo-500 text-indigo-400"
+                  : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200"
+              }`}
+            >
+              <ShieldAlert className="h-4 w-4" />
+              <span>Quản lý Tri thức</span>
             </button>
 
             <button
@@ -265,7 +281,11 @@ const Dashboard = () => {
 
         {/* Inner Content Container */}
         <div className="flex-1 p-8 space-y-8">
-          {/* Welcome section & create CTA */}
+          {activeTab === 'knowledge' ? (
+            <KnowledgeBase workspaces={workspaces} />
+          ) : (
+            <>
+              {/* Welcome section & create CTA */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2 flex items-center space-x-2">
@@ -437,7 +457,7 @@ const Dashboard = () => {
                           <Trash2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => alert(`Truy cập workspace: ${ws.name}`)}
+                          onClick={() => setActiveTab("knowledge")}
                           className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm transition-all active:scale-[0.97] cursor-pointer"
                         >
                           <span>Quản lý</span>
@@ -450,6 +470,8 @@ const Dashboard = () => {
               </div>
             )}
           </div>
+          </>
+          )}
         </div>
       </div>
 
