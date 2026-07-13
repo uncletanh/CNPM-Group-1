@@ -1,7 +1,7 @@
 fastapi
 uvicorn
-pydantic
-pydantic-settings
+pydantic>=2.7.0
+pydantic-settings>=2.2.1
 sqlalchemy
 psycopg2-binary
 passlib[bcrypt]
@@ -11,3 +11,8 @@ chromadb
 python-dotenv
 websockets
 email-validator
+langchain
+langchain-community
+langchain-chroma
+pypdf
+sentence-transformers

@@ -13,3 +13,5 @@ venv/
 Thumbs.db
 db
 Desktop.ini
+
+backend/sql_app.db
