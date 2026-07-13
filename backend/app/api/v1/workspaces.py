@@ -11,7 +11,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.db.chroma import CHROMA_DATA_DIR
+from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS
 from app.db.session import get_db
 from app.models.user import User
 from app.models.workspace import DEFAULT_SYSTEM_PROMPT, Workspace
@@ -181,6 +181,7 @@ async def upload_knowledge(
             collection_name=collection_name,
             embedding_function=get_embedding_model(),
             persist_directory=CHROMA_DATA_DIR,
+            client_settings=CHROMA_SETTINGS,
         )
         vector_store.add_documents(chunks)
 

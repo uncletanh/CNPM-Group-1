@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import users, auth, workspaces
+from app.api.v1 import users, auth, workspaces, chat
 from app.db.session import Base, engine, ensure_workspace_schema
 
 # Tạo tất cả các bảng trong Database (Tạm thời dùng cách này để dễ setup cho sinh viên)
@@ -32,6 +32,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["Workspaces"])
+app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 
 
 @app.get("/")

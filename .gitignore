@@ -12,6 +12,8 @@ venv/
 # OS files
 Thumbs.db
 db
+!backend/app/db/
+!backend/app/db/*.py
 Desktop.ini
 
 backend/sql_app.db
