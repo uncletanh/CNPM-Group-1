@@ -59,9 +59,7 @@ const Login = () => {
 
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">
-              <Bot className="h-5 w-5" />
-            </div>
+            <img src="/favicon.png" alt="NovaChat Logo" className="h-12 w-12 object-contain drop-shadow-[0_0_20px_rgba(99,102,241,0.5)] hover:scale-105 transition-transform" />
             <span className="text-xl font-bold tracking-wider bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
               NovaChat AI
             </span>
@@ -114,9 +112,7 @@ const Login = () => {
           <div className="w-full max-w-md space-y-8">
             {/* Branding for Mobile */}
             <div className="flex lg:hidden items-center justify-center space-x-3 mb-6">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">
-                <Bot className="h-5 w-5" />
-              </div>
+                <img src="/favicon.png" alt="NovaChat Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]" />
               <span className="text-2xl font-bold tracking-wider bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
                 NovaChat AI
               </span>
