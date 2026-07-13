@@ -1,7 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { AxiosError } from "axios";
 import api from "../services/api";
-import { Mail, Lock, Eye, EyeOff, Bot, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+
+interface ApiErrorBody {
+  detail?: string;
+}
+
+const getApiErrorDetail = (error: unknown) => {
+  const axiosError = error as AxiosError<ApiErrorBody>;
+  return axiosError.response?.data?.detail;
+};
 
 const Login = () => {
   const [isRegister, setIsRegister] = useState(false);
@@ -32,13 +42,9 @@ const Login = () => {
         localStorage.setItem("email", email);
         navigate("/dashboard");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      if (err.response && err.response.data && err.response.data.detail) {
-        setError(err.response.data.detail);
-      } else {
-        setError("Đã xảy ra lỗi. Vui lòng kiểm tra lại kết nối.");
-      }
+      setError(getApiErrorDetail(err) || "Da xay ra loi. Vui long kiem tra lai ket noi.");
     } finally {
       setLoading(false);
     }
