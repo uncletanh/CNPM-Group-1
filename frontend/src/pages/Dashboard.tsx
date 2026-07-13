@@ -145,9 +145,7 @@ const Dashboard = () => {
         <div>
           {/* Logo brand */}
           <div className="flex items-center space-x-3 mb-10 px-2">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
-              <Bot className="h-5 w-5" />
-            </div>
+            <img src="/favicon.png" alt="NovaChat Logo" className="h-11 w-11 object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.4)] hover:scale-105 transition-transform" />
             <div>
               <h2 className="text-lg font-bold tracking-wider text-white">NovaChat AI</h2>
               <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest">Workspace Hub</span>
