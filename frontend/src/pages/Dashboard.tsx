@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import type { AxiosError } from "axios";
 import api from "../services/api";
 import { Toaster } from "react-hot-toast";
 import KnowledgeBase from "./KnowledgeBase";
@@ -22,8 +23,24 @@ import {
   ShieldAlert
 } from "lucide-react";
 
+interface Workspace {
+  id: number;
+  name: string;
+  system_prompt?: string;
+  owner_id: number;
+}
+
+interface ApiErrorBody {
+  detail?: string;
+}
+
+const getApiErrorDetail = (error: unknown) => {
+  const axiosError = error as AxiosError<ApiErrorBody>;
+  return axiosError.response?.data?.detail;
+};
+
 const Dashboard = () => {
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
@@ -34,19 +51,21 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("workspaces");
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
-  const [userEmail, setUserEmail] = useState("admin@novachat.com");
+  const [userEmail] = useState(() => localStorage.getItem("email") || "admin@novachat.com");
+  const [selectedKnowledgeWorkspaceId, setSelectedKnowledgeWorkspaceId] = useState<number | null>(null);
   
   const navigate = useNavigate();
 
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const response = await api.get("/workspaces");
       setWorkspaces(response.data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+      const axiosError = err as AxiosError;
+      if (axiosError.response && (axiosError.response.status === 401 || axiosError.response.status === 403)) {
         localStorage.removeItem("token");
         localStorage.removeItem("email");
         navigate("/login");
@@ -56,7 +75,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -64,14 +83,13 @@ const Dashboard = () => {
       navigate("/login");
       return;
     }
-    
-    const email = localStorage.getItem("email");
-    if (email) {
-      setUserEmail(email);
-    }
-    
-    fetchWorkspaces();
-  }, [navigate]);
+
+    const timer = window.setTimeout(() => {
+      void fetchWorkspaces();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [fetchWorkspaces, navigate]);
 
   const handleCreateWorkspace = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,10 +100,10 @@ const Dashboard = () => {
       await api.post("/workspaces", { name: newWorkspaceName });
       setNewWorkspaceName("");
       setIsModalOpen(false);
-      fetchWorkspaces();
-    } catch (err: any) {
+      void fetchWorkspaces();
+    } catch (err: unknown) {
       console.error(err);
-      alert("Đã xảy ra lỗi khi tạo Workspace.");
+      alert(getApiErrorDetail(err) || "Da xay ra loi khi tao Workspace.");
     } finally {
       setCreateLoading(false);
     }
@@ -96,10 +114,10 @@ const Dashboard = () => {
       setError(null);
       await api.delete(`/workspaces/${id}`);
       setDeleteConfirmId(null);
-      fetchWorkspaces();
-    } catch (err: any) {
+      void fetchWorkspaces();
+    } catch (err: unknown) {
       console.error(err);
-      alert("Đã xảy ra lỗi khi xóa Workspace.");
+      alert(getApiErrorDetail(err) || "Da xay ra loi khi xoa Workspace.");
     }
   };
 
@@ -191,7 +209,10 @@ const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => setActiveTab("knowledge")}
+              onClick={() => {
+                setSelectedKnowledgeWorkspaceId(null);
+                setActiveTab("knowledge");
+              }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer ${
                 activeTab === "knowledge"
                   ? "bg-gradient-to-r from-indigo-500/10 to-transparent border-l-2 border-indigo-500 text-indigo-400"
@@ -280,7 +301,12 @@ const Dashboard = () => {
         {/* Inner Content Container */}
         <div className="flex-1 p-8 space-y-8">
           {activeTab === 'knowledge' ? (
-            <KnowledgeBase workspaces={workspaces} />
+            <KnowledgeBase
+              key={selectedKnowledgeWorkspaceId ?? "manual"}
+              workspaces={workspaces}
+              initialWorkspaceId={selectedKnowledgeWorkspaceId}
+              onWorkspacesChanged={fetchWorkspaces}
+            />
           ) : (
             <>
               {/* Welcome section & create CTA */}
@@ -455,7 +481,10 @@ const Dashboard = () => {
                           <Trash2 className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => setActiveTab("knowledge")}
+                          onClick={() => {
+                            setSelectedKnowledgeWorkspaceId(ws.id);
+                            setActiveTab("knowledge");
+                          }}
                           className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-sm transition-all active:scale-[0.97] cursor-pointer"
                         >
                           <span>Quản lý</span>

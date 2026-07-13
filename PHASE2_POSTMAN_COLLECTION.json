@@ -1,0 +1,271 @@
+{
+  "info": {
+    "name": "NovaChat AI - Phase 2 Knowledge Base",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "email", "value": "phase2@test.com" },
+    { "key": "password", "value": "12345678" },
+    { "key": "token", "value": "" },
+    { "key": "workspace_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Register",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/v1/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register trả 200 hoặc email đã tồn tại', function () {",
+              "  pm.expect([200, 400]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/v1/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login thành công', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Có access_token', function () { pm.expect(json.access_token).to.be.a('string').and.not.empty; });",
+              "pm.collectionVariables.set('token', json.access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workspace - Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/api/v1/workspaces/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Phase 2 Test\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Tạo workspace thành công', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Workspace có system_prompt', function () { pm.expect(json.system_prompt).to.be.a('string').and.not.empty; });",
+              "pm.collectionVariables.set('workspace_id', json.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workspace - List",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/api/v1/workspaces/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Lấy workspace thành công', function () { pm.response.to.have.status(200); });",
+              "pm.test('Response là array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prompt - Update Valid",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/prompt",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"system_prompt\": \"Bạn là trợ lý CSKH của NovaChat AI. Chỉ trả lời dựa trên tài liệu đã nạp. Nếu không có thông tin, hãy đề nghị gặp nhân viên hỗ trợ.\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cập nhật prompt thành công', function () { pm.response.to.have.status(200); });",
+              "pm.test('Prompt được lưu', function () { pm.expect(pm.response.json().system_prompt).to.include('NovaChat AI'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prompt - Reject Too Short",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/prompt",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"system_prompt\": \"short\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Prompt quá ngắn bị từ chối', function () { pm.response.to.have.status(422); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Knowledge - Upload TXT Valid",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/knowledge",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Upload thành công', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Có chunks > 0', function () { pm.expect(json.chunks).to.be.above(0); });",
+              "pm.test('Collection đúng workspace', function () { pm.expect(json.collection_name).to.eql(`workspace_${pm.collectionVariables.get('workspace_id')}_knowledge`); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Knowledge - Upload Empty TXT",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/knowledge",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('File rỗng bị từ chối', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Knowledge - Upload Unsupported File",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/knowledge",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('File sai định dạng bị từ chối', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Knowledge - Upload Missing Token",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": "{{base_url}}/api/v1/workspaces/{{workspace_id}}/knowledge",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": [] }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Thiếu token bị từ chối', function () { pm.expect([401, 403]).to.include(pm.response.code); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -2,10 +2,11 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import users, auth, workspaces
-from app.db.session import engine, Base
+from app.db.session import Base, engine, ensure_workspace_schema
 
 # Tạo tất cả các bảng trong Database (Tạm thời dùng cách này để dễ setup cho sinh viên)
 Base.metadata.create_all(bind=engine)
+ensure_workspace_schema()
 
 app = FastAPI(
     title="NovaChat AI Backend",
