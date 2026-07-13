@@ -14,16 +14,24 @@ app = FastAPI(
     description="Backend API for NovaChat AI Platform"
 )
 
-# Cấu hình CORS để Frontend gọi API không bị lỗi
+# Cấu hình CORS để widget hoặc frontend gọi API không bị lỗi
 origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 frontend_url = os.getenv("FRONTEND_URL")
+widget_url = os.getenv("WIDGET_URL")
 if frontend_url:
     origins.append(frontend_url)
+if widget_url:
+    origins.extend([origin.strip() for origin in widget_url.split(",") if origin.strip()])
+
+allow_credentials = True
+if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true":
+    origins = ["*"]
+    allow_credentials = False
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
