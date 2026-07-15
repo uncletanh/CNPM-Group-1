@@ -1,33 +1,56 @@
-# 4. KỊCH BẢN NGƯỜI DÚNG (USER SCENARIOS)
+# 4. Kịch bản người dùng
 
-## Scenario 1: Trải nghiệm "Zero-Day" Onboarding (Khách hàng lần đầu)
-* **Bối cảnh:** David (Founder) đăng ký NovaChat để tự động hóa FAQ cho web bán hàng.
-* **Mục tiêu:** Đưa bot lên web thành công mà không cần thuê Coder.
-* **Hành động của User:**
-  1. Đăng nhập 1 chạm bằng Google SSO.
-  2. Kéo-thả file `FAQ_Cong_ty.docx` dài 5 trang vào hệ thống.
-  3. Chọn màu chủ đạo của bot là Xanh dương cho hợp mệnh.
-  4. Copy đoạn mã JavaScript sinh ra và dán vào thẻ `<body>` trên Shopify.
-* **Phản hồi của Hệ thống:** Backend nuốt file DOCX, băm nhỏ (chunking) và nạp vào ChromaDB chỉ trong 30 giây. Trả ra mã nhúng chứa `workspace_id` duy nhất.
-* **Nỗi đau được giải quyết:** Không cần biết code. Không cần vẽ sơ đồ khối rườm rà.
-* **Giá trị Doanh nghiệp (Business Value):** Chạm tới TTFV (Time to First Value) dưới 5 phút, tối đa hóa tỷ lệ chốt sale (Activation rate) của phần mềm SaaS.
+## Scenario 1: Onboarding và nạp tri thức
 
-## Scenario 2: Cứu Vãn Khủng Hoảng (Critical Handoff)
-* **Bối cảnh:** Khách hàng nhận được hàng vỡ, nhắn lên web với thái độ giận dữ: "Bán hàng như rác, trả tiền lại ngay!!!"
-* **Mục tiêu:** Khách cần gặp con người có thẩm quyền xử lý ngay lập tức để xả giận.
-* **Hành động của User:** Khách hàng bấm nút "Gặp nhân viên hỗ trợ" (nổi bật trên Widget).
-* **Phản hồi của Hệ thống:** 
-  1. Bot lập tức câm miệng (Ngừng sinh AI).
-  2. Widget báo: "Đang kết nối với nhân viên..."
-  3. Ở trang Omnibox, trình duyệt réo chuông ầm ĩ và bật Push Notification cho Sarah (Agent).
-* **Hành động của Agent:** Sarah mở Omnibox, đọc được ngay câu chửi của khách, bấm nút **"Tiếp nhận"**, và gõ phản hồi: "Dạ em thành thật xin lỗi anh, em đang tạo lệnh hoàn tiền 100% cho anh ngay lúc này ạ."
-* **Nỗi đau được giải quyết:** Ngăn chặn con AI trả lời ngu ngốc kiểu "Vui lòng xem chính sách đổi trả tại link sau" khiến khách hàng tức điên lên.
-* **Giá trị Doanh nghiệp (Business Value):** Cứu vãn danh tiếng thương hiệu và ngăn chặn bóc phốt.
+1. Admin đăng ký bằng email/mật khẩu hoặc Google SSO đã cấu hình.
+2. Admin tạo workspace.
+3. Trong **Quản lý Tri thức**, Admin upload PDF/TXT/DOCX hoặc nhập text.
+4. Progress hiển thị giai đoạn upload và tạo embedding.
+5. Tài liệu xuất hiện trong danh sách; Admin có thể preview chunk/page.
+6. Admin mở **Test Bot** để hỏi thử trước khi nhúng.
 
-## Scenario 3: Cứu Rỗi Phiên Chat Bị Rớt (Session Persistence)
-* **Bối cảnh:** Khách hàng đang chat với bot hỏi về giá sỉ. Đột nhiên lỡ tay vuốt thoát trình duyệt trên điện thoại để check tin nhắn Zalo.
-* **Mục tiêu:** Trở lại cuộc hội thoại mà không phải hỏi lại từ đầu.
-* **Hành động của User:** Mở lại trang web 10 phút sau, bấm vào icon Chat.
-* **Phản hồi của Hệ thống:** Widget đọc LocalStorage của trình duyệt, bê nguyên xi lịch sử hội thoại 10 phút trước in ra màn hình. Khách tiếp tục chat.
-* **Nỗi đau được giải quyết:** Xóa bỏ sự ức chế khi phải lặp lại câu hỏi.
-* **Giá trị Doanh nghiệp (Business Value):** Giảm tỷ lệ thoát trang (Drop-off rate), tăng tỷ lệ chuyển đổi chốt đơn.
+**Kết quả:** dữ liệu được lưu trong collection Chroma của workspace. Upload lại cùng filename thay thế chunk cũ.
+
+**Giới hạn:** thời gian xử lý phụ thuộc kích thước file và model embedding; code không cam kết hoàn thành trong 30/60 giây.
+
+## Scenario 2: Cấu hình và nhúng widget
+
+1. Admin mở **Cấu hình Bot AI**.
+2. Cập nhật system prompt, allowed origin, màu, tên, lời chào, avatar URL và vị trí.
+3. Xem preview và sao chép mã nhúng.
+4. Website tải JavaScript/CSS widget từ nơi đã phát hành.
+
+**Kết quả:** widget lấy public config bằng widget token và áp dụng tùy chỉnh.
+
+## Scenario 3: Hỏi đáp RAG có trích dẫn
+
+1. Customer gửi câu hỏi.
+2. Backend lưu tin nhắn, lấy Top-K context đạt threshold và thêm tối đa 10 tin gần nhất.
+3. Ollama trả token qua SSE.
+4. Widget hiển thị nội dung và nguồn khi event `done` tới.
+
+**Nhánh lỗi:** nếu Ollama không chạy, API phát lỗi provider. Nếu không có context đủ tin cậy hoặc phát hiện mẫu injection, session chuyển sang `waiting_human`.
+
+## Scenario 4: Customer yêu cầu nhân viên
+
+1. Customer bấm **Gặp nhân viên**.
+2. Session chuyển sang `waiting_human`; Omnibox nhận sự kiện WebSocket.
+3. Nếu Agent đã bật thông báo và dashboard còn mở, trình duyệt phát âm thanh/Browser Notification.
+4. Agent bấm takeover; Redis lock và conditional SQL update ngăn double assignment.
+5. Agent trả lời và resolve; widget nhận sự kiện, đồng thời polling là fallback.
+6. Sau 60 giây chưa có Agent, hệ thống thêm một system fallback message.
+
+**Giới hạn:** chưa có Web Push khi dashboard đã đóng; timer trong process được bổ sung bằng kiểm tra timeout ở endpoint poll.
+
+## Scenario 5: Khôi phục phiên chat
+
+Widget lưu `session_key` trong LocalStorage. Khi người dùng reload cùng trình duyệt, widget gọi history để tải lại message. Nếu database đã reset hoặc session không còn tồn tại, widget xóa key cũ và bắt đầu session mới.
+
+## Scenario 6: Mời Agent
+
+1. Admin tạo invitation theo email và role.
+2. Dashboard tạo token/link hết hạn sau 7 ngày để sao chép.
+3. Người được mời đăng ký/đăng nhập bằng đúng email và mở link accept.
+4. Backend tạo membership `admin` hoặc `agent`.
+
+**Giới hạn:** chưa có dịch vụ gửi email invitation tự động.

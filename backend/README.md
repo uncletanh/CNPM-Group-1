@@ -1,42 +1,91 @@
-# NovaChat AI - Backend API
+# NovaChat AI Backend
 
-## Hướng dẫn cài đặt cho sinh viên
+Backend là FastAPI modular monolith phụ trách xác thực, workspace/RBAC, Knowledge Base, RAG, hội thoại, Human Handoff và realtime.
 
-### Bước 1: Cài đặt Python
-Đảm bảo bạn đã cài đặt Python (phiên bản >= 3.10). Kiểm tra bằng lệnh:
-```bash
-python --version
-```
+## Cài đặt
 
-### Bước 2: Tạo môi trường ảo (Virtual Environment)
-Mở terminal tại thư mục `backend` và chạy lệnh sau để tạo môi trường ảo (giúp không xung đột thư viện với các dự án khác):
-```bash
+Yêu cầu Python `3.11` hoặc `3.12`.
+
+```powershell
 python -m venv venv
+.\venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### Bước 3: Kích hoạt môi trường ảo
-- Trên Windows:
-```bash
-venv\Scripts\activate
-```
-- Trên macOS/Linux:
-```bash
-source venv/bin/activate
-```
-*(Nếu kích hoạt thành công, bạn sẽ thấy chữ `(venv)` ở đầu dòng terminal)*
+Các biến quan trọng:
 
-### Bước 4: Cài đặt thư viện
-```bash
-pip install -r requirements.txt
+| Biến | Mục đích |
+|---|---|
+| `DATABASE_URL` | SQLite local hoặc PostgreSQL staging/production |
+| `SECRET_KEY` | Ký JWT và session OAuth; phải thay ở production |
+| `OLLAMA_BASE_URL` | Mặc định `http://localhost:11434` |
+| `OLLAMA_MODEL` | Mặc định `qwen2.5:3b` |
+| `REDIS_URL` | Lock takeover và Pub/Sub nhiều instance; để trống khi chạy local một instance |
+| `RAG_MAX_DISTANCE` | Ngưỡng khoảng cách Chroma, mặc định `1.2` |
+| `CHAT_HISTORY_LIMIT` | Số tin nhắn gần nhất đưa vào prompt, mặc định `10` |
+| `HUMAN_HANDOFF_TIMEOUT_SECONDS` | Thời gian gửi fallback, mặc định `60` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Bật Google SSO |
+| `FRONTEND_URL` | Origin dashboard và URL redirect sau Google OAuth |
+| `RATE_LIMIT_PER_MINUTE` | Giới hạn POST chat theo IP/path trong một process |
+
+## Database và migration
+
+```powershell
+alembic upgrade head
 ```
 
-### Bước 5: Cấu hình biến môi trường
-Tạo một file có tên là `.env` trong thư mục `backend` (ngang hàng với `requirements.txt`).
-Copy toàn bộ nội dung từ file `.env.example` sang file `.env` và điền thông tin (Database URL sẽ được Lead cung cấp).
+Alembic hiện có một baseline Phase 4. `Base.metadata.create_all()` và các hàm `ensure_*_schema()` vẫn được giữ để tương thích database SQLite cũ; migration tiếp theo nên được quản lý hoàn toàn bằng Alembic.
 
-### Bước 6: Khởi chạy Server
-```bash
-uvicorn app.main:app --reload
+ChromaDB lưu persistent tại `backend/chroma_data/`. Mỗi workspace dùng collection `workspace_<id>_knowledge`.
+
+## Chạy server
+
+```powershell
+python -m uvicorn app.main:app --reload
 ```
-Server sẽ chạy tại `http://127.0.0.1:8000`.
-Bạn có thể xem tài liệu API Swagger tự động tại: `http://127.0.0.1:8000/docs`.
+
+- API: `http://127.0.0.1:8000`
+- Swagger: `http://127.0.0.1:8000/docs`
+- Health: `GET /health`
+- Prometheus metrics: `GET /metrics`
+
+## Nhóm API
+
+- `/api/v1/auth`: đăng ký, đăng nhập, Google OAuth.
+- `/api/v1/users`: tài khoản hiện tại, đổi mật khẩu, danh sách user dành cho global admin.
+- `/api/v1/workspaces`: workspace, prompt, widget settings, thành viên, lời mời và Knowledge Base.
+- `/api/v1/chat`: chat thường/SSE, lịch sử, poll, thống kê, handoff và WebSocket.
+
+Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin`, backend kiểm tra header `Origin`. Dashboard dùng JWT Bearer.
+
+## Knowledge Base và RAG
+
+- Định dạng: PDF, TXT, DOCX.
+- Giới hạn: 50 MB/file.
+- Chunk: 1.000 ký tự, overlap 200.
+- Embedding: `all-MiniLM-L6-v2`.
+- Upload lại cùng `source_filename` sẽ xóa chunk cũ trước khi thêm chunk mới.
+- Chat lọc chunk vượt `RAG_MAX_DISTANCE` hoặc chứa mẫu prompt injection.
+- Không có context đủ tin cậy sẽ chuyển session sang `waiting_human`.
+
+## Realtime và Handoff
+
+- SSE stream token từ Ollama cho widget.
+- WebSocket truyền sự kiện tới Agent và widget.
+- Redis Pub/Sub đồng bộ nhiều backend instance.
+- Redis lock và cập nhật SQL có điều kiện chống hai Agent tiếp quản cùng lúc.
+- Không có Redis sẽ dùng lock nội bộ một process.
+- Fallback sau 60 giây được lập lịch trong process và được kiểm tra lại ở endpoint poll.
+
+## Kiểm thử
+
+```powershell
+.\venv\Scripts\python.exe -m compileall app
+.\venv\Scripts\python.exe test_chat_api.py
+.\venv\Scripts\python.exe test_knowledge_listing.py
+.\venv\Scripts\python.exe test_phase4_chat.py
+.\venv\Scripts\python.exe test_workspace_rbac.py
+```
+
+`test_chroma.py` là smoke test Chroma/embedding riêng và có thể tải model lần đầu.

@@ -1,19 +1,33 @@
-# 1. GIỚI THIỆU TỔNG QUAN SẢN PHẨM (PRODUCT INTRODUCTION)
+# 1. Giới thiệu sản phẩm
+
+Ngày cập nhật: **15/07/2026**.
 
 ## NovaChat AI là gì?
-**NovaChat AI** là một nền tảng phần mềm dạng dịch vụ (SaaS) cung cấp giải pháp tự động hóa Chăm sóc Khách hàng (CSKH) dành riêng cho các doanh nghiệp vừa và nhỏ (SME). 
 
-Thay vì sử dụng các hệ thống Chatbot kịch bản (Rule-based) cứng nhắc hay những mô hình AI dùng chung hay "bịa chuyện" (Hallucination), NovaChat AI kết hợp sức mạnh của **RAG** (Retrieval-Augmented Generation) và cơ chế **Human-in-the-loop** (Có sự can thiệp của con người) để tạo ra một luồng hỗ trợ không tì vết.
+NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Doanh nghiệp tạo workspace, nạp tài liệu riêng và nhúng widget vào website. AI tìm context trong ChromaDB, dùng Ollama để sinh câu trả lời và chuyển hội thoại cho nhân viên khi context không đủ tin cậy hoặc khách chủ động yêu cầu.
 
-## Cơ chế Hoạt động Cốt lõi
-Hệ thống vận hành xoay quanh 3 bước cực kỳ đơn giản:
-1. **Nạp tri thức siêu tốc (Zero-Training):** Doanh nghiệp chỉ cần tải lên các tài liệu sẵn có (File PDF, Word chứa Chính sách, Bảng giá, Cẩm nang sản phẩm). Hệ thống sẽ tự động bóc tách và "dạy" cho AI học thuộc các tài liệu này trong vòng vài phút.
-2. **Tự động hóa 80% (AI Copilot):** Khi khách hàng nhắn tin trên website, AI sẽ đối chiếu câu hỏi với kho tài liệu vừa nạp và trả lời ngay lập tức (Real-time Streaming) một cách tự nhiên và chính xác tuyệt đối.
-3. **Tiếp quản mượt mà 20% (Frictionless Handoff):** Khi gặp tình huống ngoài tài liệu hoặc khách hàng có thái độ giận dữ, AI sẽ lập tức lùi lại và đánh chuông cảnh báo. Nhân viên thật (Agent) có thể nhảy vào đoạn chat ngay lập tức với toàn bộ ngữ cảnh (lịch sử chat) đã được lưu lại, giúp giải quyết vấn đề mà khách hàng không phải nhắc lại câu chuyện.
+## Luồng cốt lõi hiện đã có
 
-## Tại sao lại là NovaChat AI?
-* **Tốc độ triển khai (Time-to-market):** Không cần lập trình, không cần vẽ sơ đồ tư duy phức tạp. Triển khai lên website khách hàng chỉ trong 5 phút.
-* **Bảo mật dữ liệu tuyệt đối (Data Sovereignty):** Tri thức của doanh nghiệp nào chỉ phục vụ cho doanh nghiệp đó nhờ cơ chế phân tách Vector Database theo từng Workspace.
-* **Trải nghiệm khách hàng tối đa:** Xóa bỏ hoàn toàn sự ức chế khi phải nói chuyện với những con bot "không hiểu ý người".
+1. **Nạp tri thức:** Admin tải PDF, TXT, DOCX hoặc nhập text. Backend chia đoạn 1.000 ký tự, overlap 200, tạo embedding `all-MiniLM-L6-v2` và lưu vào collection Chroma riêng của workspace.
+2. **Hỏi đáp RAG:** Widget gửi câu hỏi bằng SSE. Backend lấy Top-K chunk, lọc theo `RAG_MAX_DISTANCE`, chặn một số mẫu prompt injection và bổ sung tối đa 10 tin nhắn gần nhất.
+3. **Trích dẫn:** Câu trả lời trả kèm filename, chunk, page và preview khi metadata có sẵn.
+4. **Human Handoff:** Session chuyển qua `waiting_human`, Agent nhận trong Omnibox, trả lời và resolve. Redis hỗ trợ lock/PubSub khi chạy nhiều instance.
+5. **Quản trị:** Dashboard quản lý workspace, thành viên, Knowledge Base, Bot Config, hội thoại, thống kê và tài khoản.
 
-Tài liệu này đóng vai trò là "Bản đồ chỉ nam" (Blueprint) cho toàn bộ quá trình phát triển sản phẩm, từ việc định hình tầm nhìn, thiết kế chân dung khách hàng cho đến xây dựng kiến trúc phần mềm cấp doanh nghiệp. Mời bạn đọc tiếp các phần sau để đi sâu vào chi tiết kỹ thuật và nghiệp vụ của NovaChat AI.
+## Nguyên tắc sản phẩm
+
+- **Tách biệt theo workspace:** SQL authorization và Chroma collection riêng.
+- **Không giả định AI luôn đúng:** Context kém tin cậy sẽ chuyển sang người thay vì gọi Ollama.
+- **LLM local trước:** Code hiện chỉ hỗ trợ provider Ollama, tránh chi phí OpenAI/Gemini trong giai đoạn dự án.
+- **Khả năng tiếp quản:** Agent luôn đọc được lịch sử đã lưu trước khi phản hồi.
+
+## Phạm vi chưa hoàn tất
+
+- Chưa có Web Push nền bằng Service Worker/VAPID.
+- Chưa gửi email invitation tự động; dashboard tạo link mời để sao chép.
+- Avatar widget mới nhận URL, chưa upload file.
+- Chưa có hàng đợi ingestion nền; upload vẫn xử lý trong HTTP request.
+- Chroma local cần thiết kế lại persistent/shared storage trước khi scale nhiều backend instance.
+- Google SSO chỉ hoạt động khi có credentials và callback domain hợp lệ.
+
+Trạng thái chi tiết nằm tại [12_Implementation_Status.md](12_Implementation_Status.md).

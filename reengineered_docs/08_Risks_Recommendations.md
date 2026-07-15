@@ -1,25 +1,71 @@
-# 8. RỦI RO, KHUYẾN NGHỊ & KẾT LUẬN CHIẾN LƯỢC
+# 8. Rủi ro và khuyến nghị
 
-## RỦI RO & KHUYẾN NGHỊ
+## Rủi ro đã có biện pháp giảm thiểu
 
-### Risk 1: Hội chứng "Agent Lười Biếng" (The Lazy Agent Problem)
-Nếu hệ thống Notification bị lỗi, hoặc Agent bỏ đi uống cafe, các đoạn chat được khách hàng ấn nút "Gặp nhân viên" sẽ kẹt dưới địa ngục (purgatory) mãi mãi. Không có AI trả lời, cũng không có người trả lời.
-* **Khuyến nghị (Recommendation):** Bắt buộc phải code thêm cơ chế **Auto-Responder dự phòng (Fallback)**. Nếu một yêu cầu Takeover không được Agent nào bấm nhận trong vòng 60 giây, AI phải tự động nhắn lại: *"Hiện tại các nhân viên đều đang bận. Anh/chị vui lòng để lại Số điện thoại/Email, tụi em sẽ liên hệ ngay khi có thể ạ."*
+### Handoff không có Agent nhận
 
-### Risk 2: Thảm họa Phình to Chi phí Token
-Một file PDF nặng 10MB khi băm nhỏ sẽ tạo ra hàng chục ngàn vector. Nếu lúc query, hệ thống ngây thơ bê tất cả các chunk đó nhồi vào Context Window của LLM (ChatGPT/Gemini), công ty startup sẽ phá sản vì tiền API.
-* **Khuyến nghị (Recommendation):** Bắt buộc phải áp dụng quy luật **Top-K Retrieval** cứng trong ChromaDB (ví dụ: Chỉ lấy đúng 3 đoạn văn bản có điểm Similarity cao nhất ném cho LLM). Giới hạn độ dài Context Window luôn ở mức < 1000 tokens cho mỗi câu hỏi.
+- **Đã có:** trạng thái `waiting_human`, system fallback sau 60 giây, WebSocket và poll.
+- **Còn lại:** task chạy trong process có thể mất khi restart. Poll chỉ bù khi widget tiếp tục gọi.
+- **Khuyến nghị:** chuyển timeout sang durable job queue và đo handoff wait time.
 
-### Risk 3: AI Ảo giác (Hallucination) ở các câu hỏi Ngoài vùng phủ sóng
-Nếu khách hàng troll bot bằng cách hỏi "Thủ đô của nước Pháp là gì?", AI có thể nhiệt tình trả lời Paris, làm mất hình tượng bot CSKH chuyên nghiệp và tốn tiền API vô ích.
-* **Khuyến nghị (Recommendation):** System Prompt phải cứng như đá: *"Ngươi là nhân viên CSKH của công ty X. Ngươi CHỈ ĐƯỢC PHÉP trả lời dựa vào context ta cung cấp. Nếu câu hỏi không nằm trong context, HÃY TRẢ LỜI ĐÚNG MỘT CÂU: Dạ em chỉ hỗ trợ các câu hỏi liên quan đến dịch vụ của công ty mình thôi ạ."*
+### Hai Agent takeover cùng lúc
 
----
+- **Đã có:** Redis lock, local lock fallback và conditional SQL update.
+- **Còn lại:** khi nhiều instance nhưng Redis down, lock local không đảm bảo toàn cụm.
+- **Khuyến nghị:** coi Redis là dependency bắt buộc production và alert khi fallback.
 
-## 9. KẾT LUẬN CHIẾN LƯỢC (FINAL STRATEGIC VERDICT)
+### Hallucination và prompt injection
 
-Mô hình kinh doanh của NovaChat AI có tính khả thi cực kỳ cao và ra mắt đúng thời điểm (Perfectly timed) để khai thác thị trường SME. Tuy nhiên, tài liệu nguyên bản ban đầu vấp phải một sai lầm lớn là coi nhẹ **UX Độ trễ (Latency UX)** và **Kiểm soát Trạng thái Lỗi (Failure states)**.
+- **Đã có:** system prompt, Top-K 1–5, `RAG_MAX_DISTANCE`, mẫu injection Việt/Anh, handoff khi không đủ context, citation.
+- **Còn lại:** regex không phải phòng thủ prompt injection hoàn chỉnh; threshold chưa được đánh giá trên dữ liệu thật.
+- **Khuyến nghị:** xây evaluation set, đo retrieval/groundedness và review source trước release.
 
-Bằng cách bẻ lái kiến trúc để **bắt buộc dùng Streaming Response (chữ chạy ra từ từ)**, thiết lập **Lan can an toàn (RAG Guardrails) khắt khe**, và cấu trúc lại Backlog ưu tiên làm "Bộ Não" (Phase 2) trước khi làm "Lưới An Toàn" (Phase 4), sản phẩm hoàn toàn có thể hoàn thiện một bản MVP xuất sắc trong giới hạn thời gian cực gắt (6 tuần) mà vẫn giữ được độ ổn định tiêu chuẩn Doanh nghiệp (Enterprise-grade).
+### Cross-tenant data leak
 
-Bản Re-engineered PRD này đã nâng tầm dự án từ một "đồ án sinh viên" trở thành một **Nền tảng SaaS đủ sức để gọi vốn từ các Quỹ đầu tư mạo hiểm (Venture-backable).**
+- **Đã có:** workspace authorization trong SQL và collection Chroma riêng.
+- **Còn lại:** widget token là public credential nằm trong script; origin chỉ là lớp bổ sung và có thể giả mạo ngoài browser.
+- **Khuyến nghị:** rotation token, audit log, quota/rate limit và security test tenant isolation.
+
+## Rủi ro còn mở
+
+### ChromaDB local khi scale ngang
+
+Mỗi backend instance dùng filesystem riêng sẽ thấy vector data khác nhau.
+
+**Khuyến nghị:** dùng Chroma server/shared persistent volume có semantics rõ ràng hoặc chọn managed vector database trước khi scale.
+
+### Ingestion đồng bộ
+
+File tối đa 50 MB được parse/embed trong HTTP request, có thể gây timeout và tốn RAM/CPU.
+
+**Khuyến nghị:** upload object storage, tạo ingestion job, worker xử lý và progress theo job state.
+
+### Rate limiting không phân tán
+
+Limiter hiện lưu deque trong memory theo IP/path của từng process.
+
+**Khuyến nghị:** Redis-backed limiter, phân biệt widget/workspace/token và thêm quota.
+
+### Notification không chạy nền
+
+Browser Notification chỉ được tạo khi Omnibox đang mở.
+
+**Khuyến nghị:** Service Worker, VAPID, lưu push subscription và permission UX rõ ràng.
+
+### Quản lý dữ liệu và secrets
+
+- `/metrics` chưa có auth trong application.
+- Chưa có audit log, retention policy và export/delete request.
+- Google/Ollama/DB/Redis secrets phụ thuộc cấu hình thủ công.
+
+**Khuyến nghị:** bảo vệ metrics ở proxy, secret manager, backup/restore drill và data retention policy.
+
+### Alembic mới là baseline
+
+Runtime vẫn gọi `create_all()` và `ensure_*_schema()` để hỗ trợ database cũ.
+
+**Khuyến nghị:** tạo migration cho mọi thay đổi tiếp theo, kiểm thử upgrade/rollback và dần bỏ schema mutation runtime.
+
+## Kết luận
+
+Kiến trúc hiện tại phù hợp MVP và học tập, nhưng chưa nên gọi là enterprise-grade trước khi hoàn thiện persistent vector architecture, durable jobs, distributed rate limit, E2E/security/load test và vận hành production có monitoring/backup.

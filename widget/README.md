@@ -1,73 +1,66 @@
-# React + TypeScript + Vite
+# NovaChat AI Embeddable Widget
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Widget là React 19 + TypeScript, build bằng Vite Library Mode thành JavaScript UMD và CSS để nhúng vào website khách hàng.
 
-Currently, two official plugins are available:
+## Chạy local
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```powershell
+Copy-Item .env.example .env.local
+npm.cmd ci
+npm.cmd run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+`.env.local`:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```env
+VITE_API_URL=http://localhost:8000/api/v1
+VITE_WORKSPACE_ID=1
+VITE_WIDGET_TOKEN=<token-cua-workspace>
 ```
+
+## Build
+
+```powershell
+npm.cmd run lint
+npm.cmd run build
+```
+
+Output chính:
+
+- `dist/script.umd.cjs`
+- `dist/script.css`
+
+Khi đưa lên CDN, có thể nhúng theo cấu hình script tag:
+
+```html
+<link rel="stylesheet" href="https://cdn.example.com/script.css">
+<script
+  src="https://cdn.example.com/script.umd.cjs"
+  data-workspace-id="1"
+  data-widget-token="<widget_token>"
+  data-api-url="https://api.example.com/api/v1"
+></script>
+```
+
+Màn hình **Cấu hình Bot AI** sinh một snippet mẫu. Code hiện vẫn dùng `https://cdn.novachat.ai/script.umd.js` và API localhost trong snippet, vì vậy khi phát hành phải thay bằng URL CDN/API thật (output local hiện là `script.umd.cjs`). Nếu cấu hình `allowed_origin`, domain chứa widget phải khớp chính xác origin đã lưu.
+
+## Luồng hoạt động
+
+1. Đọc cấu hình từ `data-*` hoặc biến Vite.
+2. Tải tên bot, lời chào, màu, avatar URL và vị trí từ `/chat/{workspace_id}/widget-config`.
+3. Lưu `session_key` trong LocalStorage để khôi phục lịch sử sau reload.
+4. Gửi câu hỏi bằng POST SSE tới `/chat/{workspace_id}/stream` và hiển thị token dần.
+5. Hiển thị nguồn trả về trong event `done`.
+6. Nút **Gặp nhân viên** chuyển session sang `waiting_human`.
+7. WebSocket nhận sự kiện takeover/tin nhắn; polling là fallback để lấy tin Agent và auto-responder.
+
+## Tùy chỉnh hiện có
+
+- Màu chính.
+- Tên bot và lời chào.
+- Avatar bằng URL.
+- Vị trí trái/phải.
+- Trạng thái Bot, chờ Agent, Agent đang hỗ trợ và đã xử lý.
+- Trích dẫn tên tài liệu/trang khi RAG có nguồn.
+
+Widget chưa có upload avatar, offline queue hoặc Service Worker.

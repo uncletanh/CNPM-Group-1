@@ -1,195 +1,238 @@
-# 10. KIẾN TRÚC PHẦN MỀM CẤP DOANH NGHIỆP (ENTERPRISE SOFTWARE ARCHITECTURE)
-*Tài liệu thiết kế kiến trúc hệ thống AI NovaChat dành cho Hội đồng đánh giá, Investor và Đội ngũ Phát triển.*
+# 10. Kiến trúc phần mềm NovaChat AI
 
----
+Ngày cập nhật: **15/07/2026**. Tài liệu này mô tả code đã merge vào `main`, không phải kiến trúc giả định.
 
-## 1. ĐÁNH GIÁ TỔNG QUAN KIẾN TRÚC (EXECUTIVE ARCHITECTURE ASSESSMENT)
-* **Mục tiêu hệ thống:** Xây dựng nền tảng SaaS Multi-tenant cung cấp Chatbot AI (RAG) kết hợp Human-in-the-loop, ưu tiên tốc độ (Time-to-market) cho MVP trong 6 tuần nhưng vẫn đảm bảo khả năng scale lên hàng triệu users.
-* **Thách thức kỹ thuật:** Quản lý kết nối WebSocket thời gian thực ở quy mô lớn; Tối ưu hóa độ trễ (latency) của LLM; Ngăn chặn Race Condition khi Handoff; Đảm bảo cách ly dữ liệu Vector tuyệt đối giữa các doanh nghiệp (Data Privacy).
-* **Chiến lược kiến trúc:** Khởi đầu với **Modular Monolith** (Kiến trúc khối nguyên phân hệ) kết hợp với **Event-driven** (hướng sự kiện) cho luồng hội thoại. Tuyệt đối KHÔNG lạm dụng Microservices trong giai đoạn này để tránh overhead về DevOps.
+## 1. Phong cách kiến trúc
 
----
+NovaChat AI là **modular monolith**:
 
-## 2. PHONG CÁCH KIẾN TRÚC (ARCHITECTURAL STYLE)
-**Lựa chọn:** **Modular Monolith (Kiến trúc khối nguyên phân hệ)**
-* **Lý do chọn:** Với 1 team 5 người (sinh viên năm nhất/thực tập sinh) và timeline 6 tuần, Microservices sẽ giết chết dự án vì chi phí duy trì infrastructure, CI/CD phức tạp và network latency nội bộ. Modular Monolith gom tất cả logic (Auth, Chat, RAG) vào một server backend duy nhất nhưng phân tách rõ ràng ở cấp độ thư mục (Code-level modules).
-* **Trade-offs (Đánh đổi):** Khi một module bị crash (VD: xử lý PDF quá tải), toàn bộ server có thể sập. 
-* **Lộ trình Scale:** Khi hệ thống đạt 10,000 users, ta sẽ bóc tách riêng module `Document Ingestion` (Nuốt PDF) thành một Worker Service chạy ngầm (Asynchronous Task Queue qua Celery/Redis) vì tác vụ này ngốn CPU.
+- Một FastAPI backend chứa auth, workspace, RAG, chat và handoff.
+- Một React/Vite dashboard cho Admin/Agent.
+- Một React/Vite Library Mode widget độc lập.
+- PostgreSQL/SQLite lưu dữ liệu quan hệ.
+- ChromaDB persistent lưu vector theo workspace.
+- Redis tùy chọn cho distributed lock và Pub/Sub.
+- Ollama là LLM provider duy nhất hiện được hỗ trợ.
 
----
+Thiết kế này phù hợp MVP. Repo không dùng Next.js, Preact, Celery, S3/R2, OpenAI hoặc Gemini ở thời điểm hiện tại.
 
-## 3. KIẾN TRÚC HỆ THỐNG MỨC CAO (HIGH-LEVEL SYSTEM ARCHITECTURE)
-Hệ thống gồm 3 phân khu chính:
-1. **Client Applications:** 
-   - *Admin/Agent SPA:* Next.js/React App quản lý Workspace và trực Omnibox.
-   - *Chat Widget:* Preact/Vanilla JS siêu nhẹ nhúng vào website khách hàng.
-2. **API & Logic Layer (FastAPI):**
-   - *REST API:* Xử lý CRUD (Tạo Workspace, Upload File, Đăng nhập).
-   - *WebSocket Server:* Xử lý luồng chat Real-time và Bắn Push Notification cho Agent.
-3. **Data Layer:**
-   - *PostgreSQL:* Lưu trữ Entity quan hệ (User, Workspace, Chat Session, Message History).
-   - *ChromaDB:* Vector Database lưu trữ chunking text từ PDF để truy vấn RAG.
-   - *Redis:* In-memory Cache & Message Broker (Pub/Sub) để đồng bộ WebSocket khi scale nhiều backend instances.
-4. **AI Services:** 
-   - Gọi API bên thứ 3 (OpenAI GPT-4o-mini hoặc Gemini 1.5 Flash) để cân bằng giữa chi phí và độ thông minh.
+## 2. Sơ đồ container
 
----
-
-## 4. MÔ HÌNH KIẾN TRÚC C4 (C4 ARCHITECTURE MODEL)
-
-### Level 1 — System Context
 ```mermaid
-graph TD
-    A[Khách hàng cuối] -->|Chat & Hỏi đáp| B(NovaChat AI System)
-    C[Admin Doanh nghiệp] -->|Nạp PDF, Cấu hình| B
-    D[Nhân viên CSKH] -->|Tiếp quản chat| B
-    B -->|Gọi LLM API| E[OpenAI / Gemini]
-    B -->|Lưu file vật lý| F[AWS S3 / Cloudflare R2]
+flowchart LR
+    Customer["Customer trên website"] --> Widget["React Widget UMD"]
+    Admin["Admin / Agent"] --> Dashboard["React Dashboard"]
+    Widget -->|"REST + POST SSE"| API["FastAPI modular monolith"]
+    Widget <-->|"WebSocket / polling"| API
+    Dashboard -->|"REST JWT"| API
+    Dashboard <-->|"WebSocket JWT"| API
+    API --> SQL[("SQLite local / PostgreSQL")]
+    API --> Chroma[("ChromaDB persistent")]
+    API --> Ollama["Ollama qwen2.5:3b"]
+    API <--> Redis[("Redis lock + Pub/Sub")]
 ```
 
-### Level 2 — Container Diagram
-```mermaid
-graph TD
-    A[Widget Chat Client] -->|WebSocket/SSE| C[FastAPI Backend Server]
-    B[Admin/Agent React App] -->|HTTPS REST| C
-    B -->|WebSocket| C
-    
-    C -->|Read/Write SQL| D[(PostgreSQL)]
-    C -->|Top-K Similarity Search| E[(ChromaDB Vector Store)]
-    C -->|Pub/Sub & Session Cache| F[(Redis)]
-    C -->|Prompt + Context| G[LLM API]
-```
+## 3. Cấu trúc code
 
-### Level 4 — Code-Level Suggestions (Backend FastAPI)
 ```text
-backend/
-├── app/
-│   ├── api/          # Route definitions (REST & WebSocket)
-│   ├── core/         # Configs, Security, JWT, DB Sessions
-│   ├── models/       # SQLAlchemy ORM Models
-│   ├── schemas/      # Pydantic Schemas (Request/Response)
-│   ├── services/     # Business logic
-│   │   ├── rag_engine.py    # Chunking, Embedding, Retrieval
-│   │   ├── chat_service.py  # LLM orchestration, Streaming
-│   │   ├── handoff_lock.py  # Race condition locking
-│   └── workers/      # Celery tasks (Background PDF processing)
+backend/app/
+├── api/deps.py                 # JWT/current user
+├── api/v1/auth.py              # register/login/Google OAuth
+├── api/v1/users.py             # profile/password/users
+├── api/v1/workspaces.py        # workspace/RBAC/KB/widget config
+├── api/v1/chat.py              # RAG/SSE/history/handoff/WebSocket
+├── core/security.py            # password/JWT
+├── db/session.py               # SQLAlchemy + legacy schema helpers
+├── db/chroma.py                # persistent Chroma client
+├── models/                     # User, Workspace, Session, Message
+├── schemas/                    # Pydantic contracts
+├── services/llm.py             # Ollama provider
+├── services/realtime.py        # WebSocket, Redis Pub/Sub/lock
+└── services/observability.py   # JSON log, metrics, rate limit
+
+frontend/src/
+├── pages/Dashboard.tsx
+├── pages/WorkspaceManagement.tsx
+├── pages/BotConfig.tsx
+├── pages/KnowledgeBase.tsx
+├── pages/Omnibox.tsx
+├── pages/Analytics.tsx
+├── pages/SystemSettings.tsx
+└── services/api.ts
+
+widget/src/
+├── config.ts                   # data-* và Vite env
+├── api.ts                      # SSE/WebSocket/poll/history
+└── App.tsx                     # widget UI/state
 ```
 
----
+## 4. Domain và dữ liệu
 
-## 5. MÔ HÌNH DOMAIN (DOMAIN MODEL)
-Áp dụng tư duy Domain-Driven Design (DDD), các Aggregate Roots bao gồm:
-1. **Workspace:** Mọi dữ liệu (Agent, Bot, Vector, Chat Session) đều phải thuộc về 1 Workspace. Đây là biên giới cách ly dữ liệu (Data Isolation Boundary).
-2. **User (Admin/Agent):** Thông tin định danh và phân quyền (RBAC).
-3. **Chat Session:** Đại diện cho 1 phiên làm việc. Chứa Trạng thái (Bot-handling, Human-handling, Resolved).
-4. **Message:** Các dòng chat thuộc về 1 Session.
-5. **Knowledge Document:** Đại diện cho 1 file PDF/Word đã nạp.
+### SQL entities
 
----
+- **User:** email, password hash, global role, active flag.
+- **Workspace:** owner, system prompt, widget token/origin và widget settings.
+- **WorkspaceMember:** user + workspace + role `admin`/`agent`, unique theo cặp.
+- **WorkspaceInvitation:** email, role, token, status, hạn 7 ngày.
+- **ChatSession:** session key, status, assigned Agent và các mốc handoff/fallback.
+- **Message:** session, sender (`user`, `bot`, `agent`, `system`), content, timestamp.
 
-## 6. KIẾN TRÚC CƠ SỞ DỮ LIỆU (DATABASE ARCHITECTURE)
-* **Chiến lược Lựa chọn:** Kết hợp SQL và Vector DB.
-* **PostgreSQL (Primary DB):** Rất mạnh trong việc đảm bảo tính toàn vẹn dữ liệu (ACID). Bắt buộc phải có ràng buộc (Foreign Key) `workspace_id` ở mọi bảng để thiết lập Multi-tenancy Row-level security.
-  - *Table `chat_sessions`:* Index trên trường `workspace_id` và `status` vì Agent Omnibox sẽ liên tục query các session đang "cần hỗ trợ".
-* **ChromaDB (Vector DB):** Lưu trữ nhúng (Embeddings). Mỗi Workspace sẽ tương ứng với một `Collection` riêng biệt trong ChromaDB. Điều này đảm bảo dữ liệu RAG của công ty này không bao giờ nội suy nhầm sang công ty khác.
-* **Redis:** Lưu trữ trạng thái Rate Limiting và Lock Management (khi Agent bấm Takeover).
+Các trạng thái session:
 
----
+```text
+bot_handling -> waiting_human -> human_handling -> resolved
+      ^                                             |
+      +------------- customer gửi tin mới ----------+
+```
 
-## 7. KIẾN TRÚC HỆ THỐNG AI (AI SYSTEM ARCHITECTURE)
-* **Luồng RAG (Retrieval-Augmented Generation):**
-  1. *Câu hỏi vào:* Biến đổi câu hỏi thành Vector bằng Embedding Model (vd: `text-embedding-3-small`).
-  2. *Retrieval:* Query ChromaDB lấy ra Top 3 chunks có độ tương đồng Cosine cao nhất (Top-K = 3).
-  3. *Orchestration:* Ráp 3 chunks này vào System Prompt.
-  4. *Generation:* Gọi LLM (chế độ Streaming) trả về Frontend.
-* **Tối ưu Token & Chi phí:** Áp dụng `ConversationBufferWindowMemory` (Chỉ nhớ 5 câu chat gần nhất của user để làm ngữ cảnh), tránh gửi toàn bộ lịch sử chat dài lê thê cho LLM.
-* **Kiểm soát Ảo giác (Hallucination Mitigation):** System Prompt luôn đi kèm chỉ thị: *"Nếu thông tin không nằm trong <context> được cung cấp, hãy phản hồi: Tôi không có thông tin này, bạn có muốn gặp nhân viên không?"*
+### Vector data
 
----
+- Collection: `workspace_<workspace_id>_knowledge`.
+- Metadata chính: `workspace_id`, `source_filename`, `chunk_index`, `file_size`, `file_type`, `uploaded_at`, và `page` nếu loader cung cấp.
+- Xóa workspace sẽ xóa collection.
+- Upload cùng filename sẽ xóa vector cũ trước khi thêm mới.
 
-## 8. KIẾN TRÚC API (API ARCHITECTURE)
-* **REST API:** Dùng cho mọi tác vụ CRUD không cần thời gian thực (Đăng nhập, Tạo Workspace, Lịch sử Chat). 
-  - *Versioning:* `/api/v1/...`
-* **WebSocket (hoặc Server-Sent Events - SSE):** Bắt buộc dùng cho luồng Chat (Sinh token của AI) và luồng Omnibox (Báo noti cho Agent).
-* **Vì sao không dùng GraphQL?** Dự án MVP cần tốc độ dev nhanh, OpenAPI (Swagger) có sẵn của FastAPI đáp ứng quá đủ nhu cầu contract giữa Backend và Frontend mà không sinh ra N+1 query problem của GraphQL.
+Chroma collection riêng là biên tách vector chính; SQL endpoint vẫn phải kiểm tra owner/membership trước mọi thao tác admin.
 
----
+## 5. Knowledge ingestion
 
-## 9. KIẾN TRÚC BẢO MẬT (SECURITY ARCHITECTURE)
-* **Authentication:** Stateless JWT Token.
-* **Authorization:** Role-Based Access Control (Admin vs Agent) kiểm tra qua Dependency Injection của FastAPI.
-* **Bảo vệ Widget:** Widget Client-side không chứa JWT (vì rủi ro XSS). Widget dùng một chuỗi `widget_token` (chỉ có quyền read/write chat) được khóa cứng theo Domain name (CORS Origin Check) để tránh kẻ gian lấy mã nhúng cắm sang web khác phá hoại.
-* **OWASP Risks:** Ngăn chặn SQL Injection qua SQLAlchemy ORM. Ngăn chặn Prompt Injection bằng cách escape ký tự đặc biệt trước khi đưa vào LangChain.
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant API as FastAPI
+    participant L as Document Loader
+    participant E as MiniLM Embedding
+    participant C as ChromaDB
+    A->>API: Upload PDF/TXT/DOCX hoặc text
+    API->>API: Kiểm tra quyền, extension, 50 MB
+    API->>L: Trích xuất document/page
+    L->>API: Text documents
+    API->>API: Split 1000, overlap 200
+    API->>C: Xóa chunk cùng filename
+    API->>E: Tạo embedding
+    E->>C: Lưu chunks + metadata
+    API-->>A: filename, size, chunks, collection
+```
 
----
+Ingestion hiện đồng bộ trong HTTP request. Chưa có OCR, object storage, queue hoặc worker.
 
-## 10. CHIẾN LƯỢC MỞ RỘNG (SCALABILITY STRATEGY)
-* **1,000 Users (MVP):** 1 Backend Server (Render.com), 1 Managed PostgreSQL (Neon.tech). RAM 2GB.
-* **10,000 Users:** Bắt đầu nghẽn WebSocket và CPU xử lý PDF. Giải pháp: Tách việc phân rã PDF sang Celery Worker chạy ngầm.
-* **100,000 Users:** Thêm nhiều instances FastAPI phía sau Load Balancer. Đưa Redis Pub/Sub vào để đồng bộ kết nối WebSocket (ví dụ: Khách kết nối Server A, Agent kết nối Server B -> Redis giúp 2 server nói chuyện với nhau).
-* **1,000,000 Users:** Chuyển sang Microservices thực sự (Tách riêng Chat Service viết bằng Go/Rust, tách riêng AI Service viết bằng Python). Database Sharding theo `workspace_id`.
+## 6. RAG và LLM
 
----
+1. Lưu message của Customer và lấy/tạo `ChatSession`.
+2. Nếu session đang chờ/được Agent xử lý, không gọi RAG/LLM.
+3. Kiểm tra một số regex prompt injection.
+4. Query Chroma Top-K (`ChatRequest.top_k` từ 1 đến 5).
+5. Loại chunk rỗng, chứa mẫu injection hoặc distance lớn hơn `RAG_MAX_DISTANCE`.
+6. Nếu không còn context, chuyển `waiting_human`, báo Agent và không gọi Ollama.
+7. Nếu có context, thêm tối đa `CHAT_HISTORY_LIMIT=10` message trước đó vào prompt.
+8. Gọi Ollama `/api/chat`, thường hoặc streaming.
+9. Lưu answer và trả sources.
 
-## 11. KIẾN TRÚC HIỆU NĂNG (PERFORMANCE ARCHITECTURE)
-* **Mục tiêu Độ trễ (Latency Target):** Thời gian nhận Token đầu tiên (Time to First Token - TTFT) phải dưới **500ms**.
-* **Database Optimization:** Mọi truy vấn trong Omnibox (ví dụ: đếm số tin nhắn chưa đọc) phải được Cache trên Redis (TTL 1 phút) thay vì COUNT() liên tục vào PostgreSQL.
-* **AI Optimization:** Sử dụng các mô hình nhỏ, tốc độ cao như `gpt-4o-mini` hoặc `claude-3-haiku` thay vì mô hình lớn.
+Embedding dùng `all-MiniLM-L6-v2`; generation mặc định dùng Ollama `qwen2.5:3b`. `LLM_PROVIDER` khác `ollama` trả lỗi.
 
----
+## 7. API và realtime
 
-## 12. KIẾN TRÚC QUAN SÁT (OBSERVABILITY ARCHITECTURE)
-* **Logging:** Ghi log ở định dạng JSON để dễ query.
-* **Metrics & Tracing:** Tích hợp Datadog hoặc Prometheus/Grafana để đo đạc các chỉ số:
-  - Tỷ lệ Cache Hit/Miss.
-  - LLM API Latency & Token Usage (Bắt buộc để tính giá cost).
-  - Số lượng WebSocket connection đang mở.
+### REST/SSE
 
----
+- Auth/users/workspaces dùng REST JSON.
+- Upload dùng multipart form-data.
+- `POST /api/v1/chat/{workspace_id}` trả answer đầy đủ.
+- `POST /api/v1/chat/{workspace_id}/stream` trả SSE events `session`, `chunk`, `human`, `done`, `error`.
+- Widget dùng history và poll để khôi phục/fallback.
 
-## 13. KIẾN TRÚC TRIỂN KHAI (DEPLOYMENT ARCHITECTURE)
-* **Cloud Provider:** Render (cho Backend), Vercel (cho Frontend), Neon.tech (cho Serverless PostgreSQL). Lựa chọn này giảm 90% nỗ lực DevOps cho startup.
-* **CI/CD:** GitHub Actions. Chạy PyTest, ESLint trước khi merge.
-* **Môi trường:** 
-  - `Staging`: Để nội bộ test trước khi release.
-  - `Production`: Dữ liệu thật, trỏ API key thật.
+### WebSocket
 
----
+`/api/v1/chat/{workspace_id}/ws` nhận query `role=agent|widget`.
 
-## 14. TECHNOLOGY STACK
-| Lớp | Công nghệ | Mục đích | Lợi ích | Rủi ro |
-|---|---|---|---|---|
-| **Backend** | Python + FastAPI | API & Logic | Native support cho hệ sinh thái AI, Async xịn. | Tốc độ tính toán thuần kém hơn Go. |
-| **Frontend**| React (Next.js & Vite) | Giao diện | Phổ biến, dễ tìm nhân sự. | Bundle size lớn nếu nhúng Widget (Cần cấu hình Vite kỹ). |
-| **Relational DB**| PostgreSQL | Lưu trữ chính | ACID, JSONB hỗ trợ linh hoạt. | Khó scale write so với NoSQL. |
-| **Vector DB** | ChromaDB | Tìm kiếm ngữ nghĩa | Chạy local được, dễ setup. | Có thể nghẽn khi lên hàng triệu Vectors. |
-| **Cache/Broker**| Redis | Session, Pub/Sub | Tốc độ siêu cao. | Mất dữ liệu nếu sập (Không quan trọng vì chỉ làm cache). |
+- Agent xác thực bằng JWT và membership.
+- Widget xác thực bằng widget token, session key và optional origin.
+- Connection được giữ trong memory của instance.
+- Redis channel `novachat:realtime` chuyển event giữa các instance.
 
----
+WebSocket truyền tín hiệu thay đổi; dữ liệu bền vẫn nằm trong SQL và được client fetch/poll lại.
 
-## 15. RỦI RO KIẾN TRÚC (ARCHITECTURAL RISKS)
-* **Risk 1 (AI-Specific): Lộ lọt dữ liệu chéo (Cross-tenant Data Leak).**
-  - *Mức độ:* Thảm họa.
-  - *Khắc phục:* Bắt buộc gán `workspace_id` vào Metadata của mọi Vector chunk. Bắt buộc filter theo metadata này trong mọi truy vấn Similarity Search.
-* **Risk 2 (Operational): Nghẽn cổ chai xử lý file PDF lớn.**
-  - *Mức độ:* Cao.
-  - *Khắc phục:* Giới hạn cứng dung lượng file upload (10MB). Không xử lý file đồng bộ trong HTTP Request mà chuyển sang Background Task.
+## 8. Human Handoff và concurrency
 
----
+- Customer request hoặc RAG confidence thấp đặt session thành `waiting_human`.
+- Agent takeover sử dụng Redis lock `novachat:takeover:<session_id>`.
+- Conditional SQL update chỉ assign khi `assigned_agent_id IS NULL`.
+- Reply yêu cầu session `human_handling` và đúng assigned Agent.
+- Resolve đặt `resolved` và báo widget/Agent.
+- Fallback 60 giây chạy bằng asyncio task; poll kiểm tra lại timeout để bù một phần.
 
-## 16. QUYẾT ĐỊNH KIẾN TRÚC (ARCHITECTURE DECISION RECORDS - ADR)
+Không có Redis, hệ thống dùng `asyncio.Lock` theo process. Chế độ này chỉ phù hợp local/một instance.
 
-**ADR 001: Quản lý Tranh chấp Handoff (Race Condition)**
-* **Context:** Nhiều Agent cùng bấm nút "Tiếp nhận" một khách hàng tại cùng một mili-giây.
-* **Alternatives:** Row-level lock của SQL vs Distributed Lock của Redis.
-* **Chosen Option:** Redis Distributed Lock.
-* **Justification:** Khi Agent A bấm, hệ thống tạo key `lock:session_{id}` trong Redis (thời gian sống 5 giây). Agent B bấm sau 50ms sẽ bị Redis chặn lại trả về 409 Conflict. Nhanh hơn và ít tạo gánh nặng cho PostgreSQL.
-* **Trade-Offs:** Cần duy trì server Redis.
+## 9. Authentication và authorization
 
----
+- Password hash qua Passlib; access token là JWT Bearer.
+- Account mới mặc định global role `agent`.
+- Google OAuth tạo/tìm user theo email đã xác minh và redirect token về `/login` của frontend.
+- Workspace owner và membership quyết định quyền thực tế.
+- Owner/workspace admin quản lý prompt, KB, widget settings và members.
+- Owner/admin/agent có workspace access để xem và xử lý chat.
+- Widget không dùng JWT; dùng `X-Widget-Token` và optional `allowed_origin`.
 
-## 17. KẾT LUẬN KIẾN TRÚC (FINAL ARCHITECTURE VERDICT)
+Origin check là defense-in-depth, không chứng minh danh tính client ngoài browser. Widget token cần được coi là public scoped credential.
 
-Kiến trúc **Modular Monolith kết hợp Event-driven WebSocket** trên nền tảng FastAPI + PostgreSQL + ChromaDB là lựa chọn hoàn hảo và thực tế nhất cho AI NovaChat ở giai đoạn MVP và Growth. 
+## 10. CORS
 
-Nó **Từ chối sự phức tạp thái quá (over-engineering)** của Microservices, tập trung toàn lực vào việc giải quyết bài toán cốt lõi: Kết hợp AI và Con người với độ trễ thấp nhất. Hệ thống phân tách rõ ràng ở cấp độ Module giúp sinh viên/Junior dễ dàng học hỏi và commit code mà không phá hỏng toàn bộ app, đồng thời trải sẵn thảm đỏ để Scale-out lên hàng trăm ngàn users thông qua Redis Pub/Sub trong tương lai. Kiến trúc này hoàn toàn đủ sức bảo vệ trước hội đồng Capstone khắt khe nhất và đủ tiêu chuẩn để các nhà đầu tư (VC) rót vốn Seed-round.
+`DynamicCORSMiddleware`:
+
+- Dashboard chỉ được phép từ localhost hoặc `FRONTEND_URL`.
+- Request chat có `X-Widget-Token` được phản chiếu origin để widget hoạt động trên domain khách hàng.
+- Endpoint chat vẫn tự xác minh token và `allowed_origin`.
+
+## 11. Observability và rate limiting
+
+- Log HTTP ở JSON trên stdout.
+- Prometheus counter/histogram tại `/metrics`.
+- `/health` kiểm tra process sống, chưa kiểm tra sâu PostgreSQL/Redis/Ollama/Chroma.
+- POST `/api/v1/chat/*` bị rate limit theo IP + path, mặc định 30 request/phút.
+
+Limiter hiện in-memory, không đồng bộ giữa các instance. `/metrics` chưa có auth trong app.
+
+## 12. Database lifecycle
+
+- Local hỗ trợ SQLite.
+- Production hướng tới PostgreSQL.
+- Alembic có baseline `20260715_01` tạo schema từ metadata.
+- Startup vẫn gọi `create_all()` và `ensure_workspace_schema()`/`ensure_chat_session_schema()` để tương thích database cũ.
+
+Mọi schema change tiếp theo nên có migration Alembic riêng và test upgrade/rollback.
+
+## 13. Build, CI và triển khai
+
+GitHub Actions:
+
+- Python 3.11: install, compile và 4 integration scripts.
+- Node 22: `npm ci`, lint, build cho dashboard và widget.
+
+Deployment artifacts:
+
+- `render.yaml`: backend + dashboard static mẫu.
+- `docker-compose.yml`: backend + Redis + dashboard local.
+- Widget build: `dist/script.umd.cjs` và `dist/script.css`.
+
+Ollama và persistent Chroma storage phải được cung cấp ngoài Render blueprint mẫu.
+
+## 14. Rủi ro kiến trúc còn mở
+
+1. Chroma local không tự đồng bộ khi scale nhiều backend instance.
+2. Ingestion và fallback task chưa dùng durable worker.
+3. Rate limiter chưa distributed.
+4. Web Push nền chưa có.
+5. Metrics chưa được bảo vệ trong application.
+6. Regex prompt injection không thể thay thế defense/evaluation toàn diện.
+7. Chưa có automated browser E2E, load test và security test đầy đủ.
+8. Chưa có production deployment đã xác nhận với backup/restore/monitoring.
+
+## 15. Quyết định kiến trúc hiện hành
+
+- **ADR-001:** Modular monolith cho MVP.
+- **ADR-002:** Ollama là provider duy nhất để tránh chi phí API.
+- **ADR-003:** SSE cho token generation; WebSocket cho sự kiện hội thoại.
+- **ADR-004:** Collection Chroma riêng theo workspace.
+- **ADR-005:** Redis lock + conditional SQL update cho takeover.
+- **ADR-006:** Polling là fallback cho widget realtime.
+
+Các quyết định này phù hợp code hiện tại và cần được xem lại khi có production traffic hoặc yêu cầu scale ngang.

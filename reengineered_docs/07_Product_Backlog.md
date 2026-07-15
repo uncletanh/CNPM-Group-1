@@ -1,18 +1,52 @@
-# 7. PRODUCT BACKLOG (TRÌNH TỰ TỐI ƯU HÓA ĐỂ THỰC THI)
+# 7. Product backlog
 
-Backlog này được sắp xếp lại dựa trên nguyên lý Product Management chuẩn: Bắt đầu từ Kiến trúc lõi -> Xây Não AI -> Làm UX cho Khách hàng -> Làm UX cho Admin/Agent.
+Ngày cập nhật: **15/07/2026**. Trạng thái dựa trên code đã merge vào `main`.
 
-| Giai đoạn (Phase) | Epic | Tên Tính năng (Feature) | Độ Ưu tiên (MoSCoW) | Độ Khó | Phụ thuộc (Dependencies) |
-|---|---|---|---|---|---|
-| **Phase 1: Nền móng** | System & Auth | Kiến trúc Đa chủ (Multi-Tenant Workspace ID) | Must Have | Trung bình | Không |
-| | System & Auth | Đăng nhập Admin/Agent bằng Google SSO | Must Have | Thấp | Nền móng DB |
-| **Phase 2: Bộ Não AI** | Knowledge Base | Kéo-thả Upload & Phân rã PDF/TXT | Must Have | Cao | Nền móng DB |
-| | Knowledge Base | Luồng Vector Embedding & ChromaDB | Must Have | Cao | Tính năng Upload PDF |
-| | Bot Config | Form Cấu hình System Prompt (Lan can bảo vệ) | Must Have | Thấp | Chạy xong Vector DB |
-| **Phase 3: Gương Mặt** | Widget | Sinh API Endpoint truy vấn LLM (LangChain + RAG) | Must Have | Cao | Xong Phase 2 |
-| | Widget | Giao diện Chat Streaming qua WebSocket/SSE | Must Have | Cao | API LLM |
-| | Widget | Lưu trữ Session rớt mạng (LocalStorage) | Should Have | Thấp | Widget UI |
-| **Phase 4: Lưới An Toàn** | Omnibox | Giao diện Dashboard quản lý danh sách Chat thời gian thực | Must Have | Trung bình | Xong Phase 3 |
-| | Omnibox | Logic Ngắt Bot Cướp Cờ (Human Takeover Lock) | Must Have | Cao | Dashboard |
-| | Omnibox | Báo thức Âm thanh / Push Notification cho Trình duyệt | Should Have | Trung bình | Dashboard |
-| **Phase 5: Đánh Bóng** | Bot Config | Customizer (Đổi màu, đổi Avatar) & Sinh Mã nhúng (Embed Code) | Could Have | Thấp | Xong Phase 3 |
+## Đã hoàn tất ở mức MVP
+
+| Phase | Hạng mục | Trạng thái |
+|---|---|---|
+| 1 | JWT auth, user, workspace đa tenant | Done |
+| 1 | Google SSO | Done trong code, cần credentials khi deploy |
+| 1 | Workspace member/invitation Admin/Agent | Done cơ bản |
+| 2 | PDF/TXT/DOCX/text ingestion và ChromaDB | Done |
+| 2 | Knowledge list/preview/delete/quick edit | Done |
+| 2 | System Prompt và Test Bot | Done |
+| 3 | RAG chat thường và SSE | Done |
+| 3 | Widget Vite Library Mode và LocalStorage session | Done |
+| 3 | Source citation | Done |
+| 4 | Omnibox, history, takeover/reply/resolve | Done |
+| 4 | WebSocket, Redis Pub/Sub và distributed lock | Done; Redis cần được cấu hình |
+| 4 | Similarity threshold, history context, injection patterns | Done; cần tuning |
+| 4 | Auto-responder sau 60 giây | Done MVP; chưa durable queue |
+| 5 | Widget color/name/greeting/avatar URL/position/preview/embed | Done |
+| Ops | CI, health/metrics, JSON log, rate limiting, Alembic baseline | Done nền tảng |
+
+## Backlog ưu tiên tiếp theo
+
+| Ưu tiên | Hạng mục | Lý do | Phụ thuộc |
+|---|---|---|---|
+| P0 | Triển khai staging thật và smoke test end-to-end | Chưa chứng minh cấu hình production | PostgreSQL, Redis, Ollama, persistent Chroma |
+| P0 | Durable background jobs cho ingestion và handoff timeout | Timer/in-request không bền qua restart | Redis + worker framework |
+| P0 | Chroma shared/persistent architecture | Local filesystem không phù hợp scale ngang | Hạ tầng vector service/storage |
+| P0 | Bộ E2E browser test | UI workflow chưa được CI tự động hóa | Seed/test environment |
+| P1 | Web Push Service Worker/VAPID | Agent không nhận khi tab đóng | HTTPS, push subscription storage |
+| P1 | Email invitation, reset password, verify email | Hoàn thiện vòng đời tài khoản | Email provider |
+| P1 | Quản trị Agent nâng cao | Đổi role, disable, ownership transfer | RBAC policy |
+| P1 | Distributed rate limiting | In-memory limiter không global | Redis |
+| P1 | Production-ready embed snippet/CDN versioning | Snippet hiện dùng CDN mẫu và localhost API | Widget hosting/release URL |
+| P1 | RAG evaluation/tuning theo workspace | Threshold `1.2` mới là mặc định | Evaluation dataset |
+| P2 | Upload/crop avatar và object storage | Hiện chỉ nhận URL | S3/R2 hoặc tương đương |
+| P2 | OCR và parser tài liệu nâng cao | PDF scan/bảng chưa ổn định | OCR/parser service |
+| P2 | Analytics theo thời gian, SLA, export | Dashboard hiện chỉ có aggregate | Event/audit data |
+| P3 | OpenAI/Gemini provider tùy chọn | Chỉ làm khi có ngân sách/yêu cầu | Provider abstraction/secrets |
+| P3 | Multi-channel và action/tool calling | Ngoài phạm vi MVP web widget | Integration platform |
+
+## Definition of Done cho backlog mới
+
+- Có migration thay vì chỉ sửa schema runtime.
+- Có test unit/integration và E2E phù hợp.
+- Frontend/widget lint và build pass.
+- Không làm mất tính tách biệt workspace.
+- Có hướng dẫn cấu hình/rollback/observability.
+- GitHub checks xanh trước merge.

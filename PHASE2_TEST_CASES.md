@@ -1,200 +1,124 @@
-# NovaChat AI - Test Cases Phase 2
+# NovaChat AI - Test Cases Knowledge Base và System Prompt
 
-Tài liệu này dùng để test đầy đủ 4 issue Phase 2:
+Tài liệu ban đầu phục vụ Phase 2 (#21–#24), nay đã được cập nhật theo code tại ngày **15/07/2026** và dùng như bộ regression test cho Knowledge Base.
 
-- **#21 Backend:** Xây dựng luồng Ingestion, nạp tri thức RAG
-- **#22 Backend:** Xây dựng API cấu hình System Prompt
-- **#23 Frontend:** Xây dựng giao diện Knowledge Base
-- **#24 Frontend:** Ghép API Upload File và xử lý Progress Bar
+## Phạm vi
 
-## Trả lời nhanh
+- Cấu hình System Prompt.
+- Upload PDF, TXT, DOCX tối đa 50 MB.
+- Nạp nội dung text trực tiếp.
+- Danh sách tài liệu/chunk, preview, sửa text và xóa.
+- Thay thế chunk khi upload lại cùng tên file.
+- Giao diện progress, Test Bot và xử lý lỗi.
 
-Không bắt buộc chỉ dùng Postman.
+Không bắt buộc chỉ dùng Postman:
 
-- **Postman**: phù hợp để test Backend API, ví dụ login, tạo workspace, lưu prompt, upload file.
-- **Trình duyệt**: bắt buộc dùng để test Frontend UI, ví dụ dropdown workspace, kéo thả file, progress bar, toast, refresh trang.
-- **Terminal**: dùng để kiểm tra build/lint/import backend.
+- **Postman:** API auth, workspace, prompt và upload.
+- **Trình duyệt:** UI, progress, preview, sửa/xóa và Test Bot.
+- **Terminal:** automated tests, lint và build.
 
-Mình đã chuẩn bị thêm file Postman Collection để bạn import:
+Collection lịch sử: [PHASE2_POSTMAN_COLLECTION.json](PHASE2_POSTMAN_COLLECTION.json). Collection này bao phủ flow Phase 2 cơ bản; các endpoint preview/text mới có thể gọi trực tiếp theo bảng bên dưới hoặc Swagger.
 
-[PHASE2_POSTMAN_COLLECTION.json](</D:/NovaChatAI/CNPM-Group-1/PHASE2_POSTMAN_COLLECTION.json>)
-
-## 1. Điều kiện trước khi test
-
-### Môi trường
-
-- Backend chạy tại `http://localhost:8000`
-- Frontend chạy tại `http://localhost:5173`
-- Đã cài dependencies:
-  - `cd backend && venv\Scripts\python.exe -m pip install -r requirements.txt`
-  - `cd frontend && npm.cmd install`
-
-### Lệnh chạy Backend
+## Chuẩn bị
 
 ```powershell
-cd D:\NovaChatAI\CNPM-Group-1\backend
-venv\Scripts\python.exe -m uvicorn app.main:app --reload
+cd backend
+.\venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-### Lệnh chạy Frontend
-
 ```powershell
-cd D:\NovaChatAI\CNPM-Group-1\frontend
+cd frontend
 npm.cmd run dev
 ```
 
-### Tài khoản test
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173`
+- Swagger: `http://localhost:8000/docs`
 
-Bạn có thể đăng ký trên màn hình Login hoặc dùng Postman:
+File mẫu:
 
-- Email: `phase2@test.com`
-- Password: `12345678`
+- `knowledge_valid.txt`: có ít nhất vài đoạn văn bản.
+- `knowledge_valid.pdf`: PDF có text, không chỉ chứa ảnh scan.
+- `knowledge_valid.docx`: Word có text.
+- `empty.txt`: 0 byte.
+- `unsupported.exe`: định dạng không hỗ trợ.
+- Một file lớn hơn 50 MB.
 
-### File test mẫu
+## Luồng Postman cơ bản
 
-Tạo file `knowledge_valid.txt` với nội dung:
+1. `POST /api/v1/auth/register`.
+2. `POST /api/v1/auth/login`, lưu Bearer token.
+3. `POST /api/v1/workspaces/`, lưu `workspace_id`.
+4. `PUT /api/v1/workspaces/{workspace_id}/prompt`.
+5. `POST /api/v1/workspaces/{workspace_id}/knowledge` với `multipart/form-data` key `file`.
+6. `GET /api/v1/workspaces/{workspace_id}/knowledge`.
 
-```text
-NovaChat AI là nền tảng chatbot ứng dụng RAG cho doanh nghiệp SME.
-Hệ thống hỗ trợ nạp tài liệu, cấu hình system prompt và trả lời dựa trên context.
-Chính sách bảo hành của công ty là 12 tháng cho sản phẩm phần mềm.
-```
+## Test System Prompt
 
-Tạo thêm:
+| ID | Thao tác | Kết quả mong đợi |
+|---|---|---|
+| PROMPT-01 | Tạo workspace | 200; có prompt mặc định và widget token |
+| PROMPT-02 | Update prompt dài 20–4.000 ký tự | 200; prompt được lưu |
+| PROMPT-03 | Update prompt dưới 20 ký tự | 422 |
+| PROMPT-04 | Workspace không tồn tại | 404 |
+| PROMPT-05 | Agent không có quyền admin workspace | 403 |
+| PROMPT-06 | Không có JWT | 401/403 |
 
-- `empty.txt`: file rỗng, 0 byte
-- `invalid.docx`: file sai định dạng
-- Một file bất kỳ lớn hơn 50MB để test giới hạn dung lượng
+## Test Upload và Ingestion
 
-## 2. Cách test bằng Postman
+| ID | Thao tác | Kết quả mong đợi |
+|---|---|---|
+| KB-01 | Upload TXT hợp lệ | 200; `chunks > 0`, collection đúng workspace |
+| KB-02 | Upload PDF có text | 200; metadata có page khi loader cung cấp |
+| KB-03 | Upload DOCX có text | 200; `file_type = docx` trong summary |
+| KB-04 | Upload file rỗng | 400 |
+| KB-05 | Upload file trên 50 MB | 413 |
+| KB-06 | Upload `.exe` hoặc extension khác | 400 |
+| KB-07 | Tài liệu không trích xuất được text | 400 |
+| KB-08 | Upload lại cùng filename | Chunk cũ bị xóa, summary chỉ có một document tên đó |
+| KB-09 | Upload vào workspace không tồn tại | 404 |
+| KB-10 | Agent không có quyền admin | 403 |
 
-### Import collection
+Chunking hiện dùng `chunk_size=1000`, `chunk_overlap=200`; embedding dùng `all-MiniLM-L6-v2`.
 
-1. Mở Postman.
-2. Chọn **Import**.
-3. Chọn file [PHASE2_POSTMAN_COLLECTION.json](</D:/NovaChatAI/CNPM-Group-1/PHASE2_POSTMAN_COLLECTION.json>).
-4. Sau khi import, collection có sẵn biến:
-   - `base_url`: `http://localhost:8000`
-   - `email`: `phase2@test.com`
-   - `password`: `12345678`
-   - `token`: tự set sau request Login
-   - `workspace_id`: tự set sau request Create Workspace
+## Test Quản lý tài liệu
 
-### Thứ tự chạy khuyến nghị
+| ID | Endpoint | Kết quả mong đợi |
+|---|---|---|
+| KB-MGMT-01 | `GET /workspaces/{id}/knowledge` | Tổng document, tổng chunk và metadata từng file |
+| KB-MGMT-02 | `GET /workspaces/{id}/knowledge/{filename}/preview` | Nội dung chunk theo thứ tự và page nếu có |
+| KB-MGMT-03 | `POST /workspaces/{id}/knowledge/text` | Tạo tài liệu text và embedding |
+| KB-MGMT-04 | Gọi lại endpoint text cùng filename | Nội dung/chunk cũ được thay thế |
+| KB-MGMT-05 | `DELETE /workspaces/{id}/knowledge/{filename}` | File biến mất khỏi summary |
+| KB-MGMT-06 | Xóa workspace | SQL data liên quan và collection Chroma bị xóa |
 
-1. `Auth - Register`
-2. `Auth - Login`
-3. `Workspace - Create`
-4. `Workspace - List`
-5. `Prompt - Update Valid`
-6. `Prompt - Reject Too Short`
-7. `Knowledge - Upload TXT Valid`
-8. `Knowledge - Upload Empty TXT`
-9. `Knowledge - Upload Unsupported File`
-10. `Knowledge - Upload Missing Token`
+## Test giao diện
 
-Với các request upload file, bạn cần vào tab **Body > form-data**, chọn key `file`, rồi chọn file từ máy của bạn.
+| ID | Thao tác | Kết quả mong đợi |
+|---|---|---|
+| FE-01 | Mở **Quản lý Tri thức** | Hiển thị workspace selector, tài liệu và số chunk |
+| FE-02 | Kéo/thả PDF, TXT hoặc DOCX | Hiển thị tên/dung lượng file |
+| FE-03 | Upload file | Có progress và trạng thái tạo embedding |
+| FE-04 | Bấm preview tài liệu | Modal hiển thị nội dung AI đã nạp và số trang/chunk |
+| FE-05 | Thêm tri thức dạng text | Document mới xuất hiện trong danh sách |
+| FE-06 | Sửa document text | Lưu thành công và thay thế nội dung cũ |
+| FE-07 | Xóa document | Có xác nhận và summary cập nhật |
+| FE-08 | Bấm **Test Bot** | Gửi câu hỏi qua API chat, hiển thị câu trả lời hoặc lỗi Ollama |
+| FE-09 | File sai định dạng/rỗng/quá lớn | Toast lỗi, UI không treo |
+| FE-10 | Refresh | Danh sách và prompt vẫn được tải lại từ backend |
 
-## 3. Test Cases Backend - System Prompt
-
-| ID | Mục tiêu | Cách test | Dữ liệu test | Kết quả mong đợi |
-|---|---|---|---|---|
-| BE-PROMPT-01 | Lấy danh sách workspace có `system_prompt` | Postman `Workspace - List` | Token hợp lệ | Status 200, mỗi workspace có `id`, `name`, `owner_id`, `system_prompt` |
-| BE-PROMPT-02 | Tạo workspace có prompt mặc định | Postman `Workspace - Create` | `{ "name": "Phase 2 Test" }` | Status 200, `system_prompt` không rỗng |
-| BE-PROMPT-03 | Cập nhật prompt thành công | Postman `Prompt - Update Valid` | Prompt dài hơn 20 ký tự | Status 200, `system_prompt` bằng prompt mới |
-| BE-PROMPT-04 | Từ chối prompt quá ngắn | Postman `Prompt - Reject Too Short` | `{ "system_prompt": "short" }` | Status 422 |
-| BE-PROMPT-05 | Từ chối workspace không tồn tại | Đổi `workspace_id` thành `999999`, chạy update prompt | Token hợp lệ | Status 404 |
-| BE-PROMPT-06 | Từ chối khi không có token | Xóa header Authorization, chạy update prompt | Không có token | Status 401 hoặc 403 |
-
-## 4. Test Cases Backend - Knowledge Ingestion
-
-| ID | Mục tiêu | Cách test | Dữ liệu test | Kết quả mong đợi |
-|---|---|---|---|---|
-| BE-KB-01 | Upload TXT hợp lệ | Postman `Knowledge - Upload TXT Valid` | `knowledge_valid.txt` | Status 200, response có `filename`, `file_size`, `chunks > 0`, `collection_name` |
-| BE-KB-02 | Upload PDF hợp lệ | Đổi file trong request upload sang PDF có text | PDF nhỏ hơn 50MB | Status 200, `chunks > 0` |
-| BE-KB-03 | Từ chối file sai định dạng | Postman `Knowledge - Upload Unsupported File` | `invalid.docx` | Status 400 |
-| BE-KB-04 | Từ chối file rỗng | Postman `Knowledge - Upload Empty TXT` | `empty.txt` | Status 400 |
-| BE-KB-05 | Từ chối file quá 50MB | Chọn file lớn hơn 50MB | File > 50MB | Status 413 |
-| BE-KB-06 | Từ chối workspace không tồn tại | Đổi `workspace_id` thành `999999`, chạy upload | TXT hợp lệ | Status 404 |
-| BE-KB-07 | Từ chối khi không có token | Postman `Knowledge - Upload Missing Token` | TXT hợp lệ | Status 401 hoặc 403 |
-| BE-KB-08 | Lưu đúng collection workspace | Upload TXT hợp lệ | Workspace hiện tại | Response có `collection_name = workspace_{id}_knowledge` |
-
-## 5. Test Cases Frontend - Knowledge Base UI
-
-| ID | Mục tiêu | Cách test | Dữ liệu test | Kết quả mong đợi |
-|---|---|---|---|---|
-| FE-KB-01 | Hiển thị tab Knowledge Base | Login, vào Dashboard, bấm `Quản lý Tri thức` | User đã login | Hiện trang `Quản lý Tri thức & Tính cách Bot` |
-| FE-KB-02 | Dropdown hiển thị workspace | Tạo ít nhất 1 workspace, vào Knowledge Base | Workspace `Phase 2 Test` | Dropdown có workspace vừa tạo |
-| FE-KB-03 | Bấm `Quản lý` trên card workspace | Ở Dashboard, bấm `Quản lý` trên một card | Workspace bất kỳ | Mở tab Knowledge Base và chọn đúng workspace |
-| FE-KB-04 | Prompt auto-fill | Chọn workspace đã lưu prompt | Prompt mới | Textarea hiển thị prompt đã lưu |
-| FE-KB-05 | Lưu prompt thành công | Nhập prompt hợp lệ, bấm lưu | Prompt > 20 ký tự | Toast success, refresh vẫn thấy prompt |
-| FE-KB-06 | Chặn prompt quá ngắn | Nhập `short`, bấm lưu | `short` | Toast error, không lưu |
-| FE-KB-07 | Kéo thả TXT hợp lệ | Drag `knowledge_valid.txt` vào dropzone | TXT hợp lệ | Hiện tên file và dung lượng |
-| FE-KB-08 | Click để chọn file | Click dropzone, chọn TXT/PDF | TXT/PDF hợp lệ | Hiện tên file và dung lượng |
-| FE-KB-09 | Xóa file đã chọn | Chọn file, bấm nút `X` | File đã chọn | File biến mất, nút upload disabled |
-| FE-KB-10 | Chặn file sai type ở client | Chọn `.docx` | `invalid.docx` | Toast error, không nhận file |
-| FE-KB-11 | Chặn file rỗng ở client | Chọn `empty.txt` | File 0 byte | Toast error |
-| FE-KB-12 | Chặn file > 50MB ở client | Chọn file lớn hơn 50MB | File > 50MB | Toast error |
-| FE-KB-13 | Progress bar khi upload | Chọn file hợp lệ, bấm upload | TXT/PDF hợp lệ | Hiện progress upload và trạng thái xử lý embedding |
-| FE-KB-14 | Hiển thị kết quả upload | Upload thành công | TXT/PDF hợp lệ | Hiện box kết quả có file, chunks, collection |
-
-## 6. Test Cases End-to-End
-
-| ID | Mục tiêu | Cách test | Kết quả mong đợi |
-|---|---|---|---|
-| E2E-01 | Flow đầy đủ workspace -> prompt -> upload | Login, tạo workspace, vào Knowledge Base, lưu prompt, upload TXT | Tất cả bước thành công, upload trả `chunks > 0` |
-| E2E-02 | Refresh vẫn giữ prompt | Sau khi lưu prompt, refresh browser, chọn lại workspace | Prompt vừa lưu vẫn hiển thị |
-| E2E-03 | Chưa login bị đá về Login | Xóa `token` trong localStorage, vào Dashboard | Redirect về Login |
-| E2E-04 | Backend tắt khi upload | Tắt backend, thử upload file | Frontend hiện toast lỗi, UI không bị treo |
-| E2E-05 | Upload nhiều file cùng workspace | Upload TXT A, sau đó TXT B | Cả hai lần success, cùng collection workspace |
-
-## 7. Kiểm tra build và chất lượng code
-
-Frontend lint:
+## Automated checks
 
 ```powershell
-cd D:\NovaChatAI\CNPM-Group-1\frontend
+cd backend
+.\venv\Scripts\python.exe test_knowledge_listing.py
+.\venv\Scripts\python.exe test_chat_api.py
+```
+
+```powershell
+cd frontend
 npm.cmd run lint
-```
-
-Frontend build:
-
-```powershell
-cd D:\NovaChatAI\CNPM-Group-1\frontend
 npm.cmd run build
 ```
 
-Widget build:
-
-```powershell
-cd D:\NovaChatAI\CNPM-Group-1\widget
-npm.cmd run build
-```
-
-Backend import:
-
-```powershell
-cd D:\NovaChatAI\CNPM-Group-1\backend
-venv\Scripts\python.exe -c "from app.main import app; print(app.title)"
-```
-
-Backend OpenAPI có endpoint:
-
-- `/api/v1/workspaces/{workspace_id}/prompt`
-- `/api/v1/workspaces/{workspace_id}/knowledge`
-
-## 8. Tiêu chí hoàn thành
-
-Có thể đóng 4 issue Phase 2 khi:
-
-- Frontend lint pass.
-- Frontend build pass.
-- Widget build pass.
-- Backend import pass.
-- Postman login tạo được token.
-- Postman tạo workspace thành công.
-- Postman cập nhật prompt hợp lệ thành công.
-- Postman từ chối prompt quá ngắn.
-- Postman upload TXT/PDF hợp lệ trả `chunks > 0`.
-- Postman từ chối file sai định dạng, file rỗng, file quá 50MB.
-- Frontend hiển thị được Knowledge Base UI, progress bar, toast và kết quả upload.
+Tiêu chí hoàn thành: automated tests pass, frontend build/lint pass và các flow upload/list/preview/edit/delete/Test Bot chạy đúng trên trình duyệt.

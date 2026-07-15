@@ -1,36 +1,70 @@
-# 6. CÂU CHUYỆN NGƯỜI DÙNG (USER STORIES)
+# 6. User stories và tiêu chí nghiệm thu
 
-### Epic: Nạp Tri Thức (Knowledge Ingestion)
-* **As an** Admin, **I want** to upload my company's PDF documents, **So that** the AI can learn my policies without me typing them out manually.
-  * **Acceptance Criteria (Tiêu chí Nghiệm thu):** 
-    * Given (Cho trước): Admin cầm 1 file PDF nặng 5MB.
-    * When (Khi): Admin kéo thả file vào vùng Upload.
-    * Then (Thì): Hệ thống tự động tách text, băm nhỏ, nạp vào Vector DB và báo "Sẵn sàng" trong vòng tối đa 60 giây.
-  * **Độ ưu tiên:** Must Have (Bắt buộc).
-  * **Business Value:** Very High | **User Value:** Very High.
+## Knowledge Base
 
-### Epic: Widget Thời gian thực (Real-Time Widget)
-* **As a** Customer, **I want** to see the bot's answer typing out word-by-word, **So that** I know the system hasn't frozen while processing my complex question.
-  * **Acceptance Criteria:**
-    * Given: Khách hàng gõ và gửi 1 câu hỏi.
-    * When: LLM backend bắt đầu suy nghĩ và sinh ra token đầu tiên.
-    * Then: Chữ xuất hiện nối đuôi nhau ra màn hình chat ngay lập tức thông qua giao thức SSE/WebSocket thay vì chờ load cả cục.
-  * **Độ ưu tiên:** Must Have.
-  * **Business Value:** High | **User Value:** High.
+**Là Admin**, tôi muốn nạp PDF/TXT/DOCX hoặc text để bot dùng tri thức riêng.
 
-### Epic: Hộp thư Agent (Agent Omnibox)
-* **As an** Agent, **I want** to see the full chat history between the AI and the customer before I intervene, **So that** I don't frustrate the customer by asking them to repeat themselves.
-  * **Acceptance Criteria:**
-    * Given: Một phiên chat đang được bot xử lý hoặc đang yêu cầu hỗ trợ.
-    * When: Agent click vào phiên chat đó trên bảng Omnibox.
-    * Then: Toàn bộ lịch sử (bao gồm cả tin nhắn của Khách và tin nhắn của Bot) hiện ra đầy đủ theo trình tự thời gian.
-  * **Độ ưu tiên:** Must Have.
-  * **Business Value:** Very High | **User Value:** Very High.
+- File tối đa 50 MB, rỗng/sai định dạng bị từ chối.
+- Summary hiển thị số document/chunk và metadata.
+- Preview hiển thị chunk, page nếu có.
+- Upload lại cùng filename thay thế dữ liệu cũ.
+- Xóa workspace xóa collection Chroma tương ứng.
 
-* **As an** Agent, **I want** to receive a distinct audio/visual notification when a customer requests human help, **So that** I can respond immediately to high-priority issues.
-  * **Acceptance Criteria:**
-    * Given: Agent đang mở tab Omnibox chìm dưới nền (Background).
-    * When: Khách hàng bấm nút "Talk to Human" ngoài website.
-    * Then: Trình duyệt của Agent phát ra tiếng "Bíp" và hiển thị Push Notification ở góc phải màn hình máy tính.
-  * **Độ ưu tiên:** Should Have (Tuyệt vời nếu có, nhưng MVP có thể tạm dùng cơ chế báo đỏ tĩnh nếu kỹ thuật chưa làm kịp Push Notification).
-  * **Business Value:** High | **User Value:** Medium.
+**Trạng thái:** Đã có automated test cho list/delete và UI cho upload/preview/text.
+
+## RAG Chat
+
+**Là Customer**, tôi muốn thấy câu trả lời được stream và có nguồn.
+
+- POST SSE phát event `session`, `chunk`, `done` hoặc `error`.
+- `done` chứa `context_chunks` và `sources`.
+- Câu hỏi không có context đạt threshold chuyển session sang `waiting_human`.
+- Lịch sử tối đa 10 message được đưa vào prompt.
+
+**Trạng thái:** Đã có test Chat API và Phase 4 guardrails/history/citations.
+
+## Human Handoff
+
+**Là Customer**, tôi muốn chủ động gặp nhân viên.
+
+- Nút **Gặp nhân viên** tạo hoặc cập nhật session `waiting_human`.
+- Widget hiển thị trạng thái chờ và nhận tin Agent qua WebSocket/poll.
+- Sau timeout, system message fallback xuất hiện.
+
+**Là Agent**, tôi muốn tiếp quản một cách độc quyền, trả lời và đóng ca.
+
+- Agent phải là owner/member của workspace.
+- Hai Agent cạnh tranh: chỉ một người được assign, người còn lại nhận 409/403.
+- Chỉ Agent đã takeover mới reply.
+- Resolve chuyển session sang `resolved`; tin nhắn Customer tiếp theo có thể mở lại bot flow.
+
+**Trạng thái:** Đã có test handoff/takeover/reply/poll/resolve.
+
+## Notification
+
+**Là Agent**, tôi muốn được báo khi khách yêu cầu hỗ trợ.
+
+- Khi dashboard đang mở và đã cấp quyền, Omnibox phát âm thanh và Browser Notification.
+- WebSocket làm mới session; polling vẫn dùng làm fallback.
+
+**Trạng thái:** Hoàn thiện trong phạm vi tab đang mở. Service Worker/VAPID Web Push nền chưa có.
+
+## Workspace RBAC
+
+**Là Admin**, tôi muốn mời Agent và giới hạn quyền cấu hình.
+
+- Invitation gắn email, role, token và hạn 7 ngày.
+- Đúng email mới accept được.
+- Agent đọc/xử lý hội thoại nhưng bị chặn khỏi widget settings/member management.
+
+**Trạng thái:** Đã có automated test RBAC/invitation. Chưa gửi email tự động.
+
+## Widget Customization
+
+**Là Admin**, tôi muốn tùy chỉnh widget trước khi nhúng.
+
+- Màu HEX, tên bot, greeting, avatar URL và trái/phải được lưu.
+- Preview cập nhật theo dữ liệu nhập.
+- Widget public tải config bằng widget token.
+
+**Trạng thái:** Đã có. Upload asset avatar chưa có.

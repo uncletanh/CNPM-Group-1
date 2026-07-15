@@ -1,29 +1,48 @@
-# 2. TẦM NHÌN SẢN PHẨM (PRODUCT VISION)
+# 2. Tầm nhìn sản phẩm
 
-## Tuyên ngôn Tầm nhìn (Vision Statement)
-Trở thành cầu nối xóa nhòa khoảng cách giữa Trí tuệ Nhân tạo và Sự thấu cảm của con người, giúp các doanh nghiệp cung cấp trải nghiệm khách hàng tức thì, chính xác và mượt mà 24/7.
+## Tuyên ngôn tầm nhìn
 
-## Tuyên ngôn Vấn đề (Problem Statement)
-Người tiêu dùng hiện đại kỳ vọng được trả lời ngay lập tức, nhưng các doanh nghiệp vừa và nhỏ (SME) không có đủ ngân sách để thuê nhân sự CSKH trực 24/7. Các Chatbot kịch bản truyền thống làm khách hàng thất vọng vì hay đi vào "ngõ cụt", trong khi các mô hình AI dùng chung lại hay "bịa chuyện" gây ảnh hưởng thương hiệu. Hơn nữa, khi bot thất bại, quá trình chuyển giao cho con người thường đứt đoạn, dẫn đến mất sale và gây phẫn nộ.
+Giúp doanh nghiệp SME cung cấp hỗ trợ tức thời bằng AI dựa trên tri thức riêng, đồng thời giữ con người trong vòng kiểm soát cho các trường hợp AI không chắc chắn.
 
-## Thị trường Mục tiêu (Target Market)
-**Chính:** Các doanh nghiệp SME (10-50 nhân sự) thuộc khối E-commerce và Dịch vụ. Nhóm này có lượng câu hỏi lặp lại (FAQ, giá cả, chính sách) rất cao nhưng nhân sự trực page lại mỏng.
+## Vấn đề
 
-## Tuyên ngôn Giá trị (Value Proposition)
-NovaChat AI là cỗ máy tự động hóa "Cắm-và-Chạy", tự học toàn bộ kiến thức doanh nghiệp của bạn chỉ trong vài phút thông qua tài liệu có sẵn. Hệ thống tự động giải quyết 80% câu hỏi thông thường và chuyển giao siêu mượt 20% ca khó cho nhân viên thật—kèm theo toàn bộ ngữ cảnh—đảm bảo không một khách hàng nào bị bỏ lại.
+- Câu hỏi lặp lại chiếm thời gian của đội CSKH.
+- Chatbot kịch bản dễ rơi vào ngõ cụt.
+- LLM dùng chung có thể trả lời ngoài chính sách doanh nghiệp.
+- Handoff thường làm mất lịch sử và buộc khách kể lại từ đầu.
 
-## Lợi thế Cạnh tranh (Competitive Advantage)
-Khác với các hệ thống đồ sộ tốn hàng tháng để triển khai (như Zendesk AI) hay các widget chat cơ bản không có trí tuệ (như Tawk.to), NovaChat mang lại "Thời gian tạo ra Giá trị" (Time-to-Value) gần như bằng không. Chỉ cần upload PDF, copy mã script và web của bạn đã có một hệ thống AI được bảo kê bởi con người.
+## Giá trị đề xuất
 
-## Điểm Khác biệt Chiến lược (Strategic Differentiators)
-1. **RAG Không Cần Đào Tạo (Zero-Training RAG):** Không cần vẽ sơ đồ kịch bản (intent-mapping) hay cây hội thoại.
-2. **Chuyển giao Không Ma sát (Frictionless Handoff):** Khách hàng không hề biết họ vừa được chuyển từ AI sang người thật; giao diện không thay đổi.
-3. **Chủ quyền Dữ liệu (Data Sovereignty):** Phân tách Vector nghiêm ngặt (Multi-tenant) đảm bảo dữ liệu của Công ty A không bao giờ bị AI lấy ra trả lời cho Công ty B.
+NovaChat AI rút ngắn luồng từ tài liệu tới chatbot: Admin nạp tri thức, kiểm thử bot, tùy chỉnh widget và lấy mã nhúng; Customer hỏi đáp qua RAG; Agent tiếp quản cùng lịch sử khi cần.
 
-## Tầm nhìn Dài hạn (3–5 năm)
-Tiến hóa từ một Widget Web bị động thành một **Lớp điều phối CRM Đa kênh** (WhatsApp, Messenger, Zalo). Không chỉ trả lời câu hỏi, AI còn có khả năng gọi API để thực thi hành động thực (ví dụ: kiểm tra mã vận đơn, đặt lịch hẹn).
+Không sử dụng các con số “80% tự động hóa” như cam kết hiện tại vì repo chưa có dữ liệu production để chứng minh. Các chỉ số bên dưới là mục tiêu cần đo, không phải kết quả đã đạt.
 
-## Chỉ số Thành công Cốt lõi (North Star Metrics)
-* **Tỷ lệ Tự giải quyết (Deflection Rate):** % số đoạn chat được AI xử lý trọn vẹn không cần con người nhúng tay (Mục tiêu: >60%).
-* **Thời gian chạm Giá trị (Time to First Value - TTFV):** Thời gian từ lúc tạo tài khoản đến lúc AI trả lời đúng câu hỏi đầu tiên trên web (Mục tiêu: < 10 phút).
-* **Thời gian Xử lý Handoff (Takeover Resolution Time):** Thời gian trung bình để Agent xử lý xong 1 ca do Bot chuyển lên (Mục tiêu: Giảm 40% nhờ có sẵn lịch sử chat).
+## Thị trường mục tiêu
+
+Doanh nghiệp 10–50 nhân sự trong E-commerce và dịch vụ, có website và nhiều câu hỏi lặp lại về giá, sản phẩm, bảo hành hoặc đổi trả.
+
+## Điểm khác biệt
+
+1. Knowledge Base riêng theo workspace.
+2. Ollama local giúp kiểm soát chi phí và vị trí xử lý LLM.
+3. Guardrails dựa trên retrieval threshold và handoff.
+4. Widget streaming có source citation.
+5. Omnibox kết hợp AI và Agent trong cùng session.
+
+## Mục tiêu đo lường
+
+- **Time to First Value:** từ tạo workspace tới câu trả lời RAG đầu tiên.
+- **Deflection Rate:** session được AI xử lý mà không handoff.
+- **Handoff Wait Time:** từ `waiting_human` tới Agent takeover.
+- **Resolution Time:** từ takeover tới `resolved`.
+- **Grounded Answer Rate:** tỷ lệ câu trả lời có context/citation đạt ngưỡng.
+- **Retrieval Quality:** precision/recall theo bộ câu hỏi đánh giá nội bộ.
+
+## Định hướng dài hạn, chưa có trong code
+
+- Web Push/PWA cho Agent.
+- Email invitation và quản trị vòng đời Agent đầy đủ.
+- Kênh Messenger/Zalo/WhatsApp.
+- Action/tool calling tới đơn hàng, vận chuyển và lịch hẹn.
+- Ingestion worker, object storage và vector service dùng chung.
+- Billing, quota và subscription.
