@@ -34,4 +34,6 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(token_data_sub)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Tài khoản đã bị vô hiệu hóa.")
     return user

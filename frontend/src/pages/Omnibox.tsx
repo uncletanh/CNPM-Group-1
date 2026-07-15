@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { AxiosError } from "axios";
 import {
   Bot,
+  Bell,
   CheckCircle2,
   Hand,
   Inbox,
@@ -49,6 +50,7 @@ const getApiErrorDetail = (error: unknown) => {
 
 const STATUS_META: Record<string, { label: string; className: string }> = {
   bot_handling: { label: "Bot phụ trách", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  waiting_human: { label: "Đang chờ Agent", className: "bg-sky-500/10 text-sky-400 border-sky-500/20" },
   human_handling: { label: "Nhân viên", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   resolved: { label: "Đã xử lý", className: "bg-slate-500/10 text-slate-400 border-slate-500/20" },
 };
@@ -71,7 +73,9 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
   const [replyText, setReplyText] = useState("");
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) || null;
 
@@ -100,6 +104,59 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
       console.error(err);
     }
   }, [selectedWorkspaceId, selectedSessionId]);
+
+  const enableNotifications = async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    audioContextRef.current ??= new AudioContext();
+    await audioContextRef.current.resume();
+    setNotificationsEnabled(true);
+    toast.success("Đã bật thông báo hội thoại mới.");
+  };
+
+  const notifyHandoff = useCallback(() => {
+    if (!notificationsEnabled) return;
+    const audio = audioContextRef.current;
+    if (audio) {
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      oscillator.frequency.value = 760;
+      gain.gain.setValueAtTime(0.12, audio.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.35);
+      oscillator.connect(gain).connect(audio.destination);
+      oscillator.start();
+      oscillator.stop(audio.currentTime + 0.35);
+    }
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("NovaChat: khách cần hỗ trợ", {
+        body: "Có hội thoại mới đang chờ Agent tiếp nhận.",
+      });
+    }
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    if (selectedWorkspaceId === "") return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+    const wsBase = apiBase.replace(/^http/, "ws");
+    const params = new URLSearchParams({ role: "agent", token });
+    const socket = new WebSocket(`${wsBase}/chat/${selectedWorkspaceId}/ws?${params}`);
+    socket.onmessage = (event) => {
+      const payload = JSON.parse(event.data) as { type?: string; session_id?: number };
+      void fetchSessions();
+      if (payload.session_id === selectedSessionId) void fetchMessages();
+      if (payload.type === "handoff_requested") notifyHandoff();
+    };
+    const heartbeat = window.setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) socket.send("ping");
+    }, 25000);
+    return () => {
+      window.clearInterval(heartbeat);
+      socket.close();
+    };
+  }, [selectedWorkspaceId, selectedSessionId, fetchSessions, fetchMessages, notifyHandoff]);
 
   // Tải + tự làm mới danh sách hội thoại
   useEffect(() => {
@@ -188,6 +245,17 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => void enableNotifications()}
+            className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
+              notificationsEnabled
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : "border-white/10 bg-slate-900 text-slate-400 hover:text-indigo-400"
+            }`}
+            title="Bật âm thanh và thông báo"
+          >
+            <Bell className="h-4 w-4" />
+          </button>
           <select
             value={selectedWorkspaceId}
             onChange={(e) => {
@@ -360,6 +428,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
                 ) : (
                   <div className="text-center text-xs text-slate-500 py-2">
                     Nhấn <span className="text-amber-400 font-semibold">Tiếp quản</span> để trả lời khách hàng trực tiếp.
+                    {selectedSession.status === "waiting_human" && " Khách đang chờ nhân viên hỗ trợ."}
                     {selectedSession.status === "bot_handling" && " Hiện Bot đang tự động phụ trách."}
                   </div>
                 )}

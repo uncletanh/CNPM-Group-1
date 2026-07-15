@@ -49,6 +49,47 @@ def ensure_workspace_schema() -> None:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE workspaces ADD COLUMN allowed_origin VARCHAR"))
 
+    widget_columns = {
+        "widget_primary_color": ("VARCHAR", "#4f46e5"),
+        "bot_name": ("VARCHAR", "NovaChat AI"),
+        "bot_greeting": (
+            "VARCHAR",
+            "Xin chào! Mình là NovaChat AI. Mình có thể giúp gì cho bạn?",
+        ),
+        "bot_avatar_url": ("VARCHAR", None),
+        "widget_position": ("VARCHAR", "right"),
+    }
+    with engine.begin() as connection:
+        for name, (column_type, default) in widget_columns.items():
+            if name in workspace_columns:
+                continue
+            connection.execute(text(f"ALTER TABLE workspaces ADD COLUMN {name} {column_type}"))
+            if default is not None:
+                connection.execute(
+                    text(f"UPDATE workspaces SET {name} = :value WHERE {name} IS NULL"),
+                    {"value": default},
+                )
+
+
+def ensure_chat_session_schema() -> None:
+    """Add handoff columns to databases created before Phase 4."""
+    inspector = inspect(engine)
+    if "chat_sessions" not in inspector.get_table_names():
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("chat_sessions")}
+    additions = {
+        "assigned_agent_id": "INTEGER",
+        "handoff_requested_at": "DATETIME",
+        "fallback_sent_at": "DATETIME",
+    }
+    with engine.begin() as connection:
+        for name, column_type in additions.items():
+            if name not in columns:
+                connection.execute(
+                    text(f"ALTER TABLE chat_sessions ADD COLUMN {name} {column_type}")
+                )
+
 
 def get_db():
     db = SessionLocal()

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { AxiosError } from "axios";
-import { BookOpenCheck, CheckCircle2, Database, FileText, RefreshCw, ShieldAlert, Trash2, UploadCloud, X } from "lucide-react";
+import { BookOpenCheck, Bot, CheckCircle2, Database, Eye, FilePenLine, FileText, MessageSquare, RefreshCw, Send, ShieldAlert, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../services/api";
 
@@ -30,6 +30,23 @@ interface KnowledgeSummary {
   total_documents: number;
   total_chunks: number;
   documents: KnowledgeDocument[];
+}
+
+interface KnowledgePreviewChunk {
+  chunk_index: number;
+  page: number | null;
+  content: string;
+}
+
+interface KnowledgePreview {
+  filename: string;
+  total_chunks: number;
+  chunks: KnowledgePreviewChunk[];
+}
+
+interface ChatTestResult {
+  answer: string;
+  sources: Array<{ source_filename: string | null; page: number | null }>;
 }
 
 interface KnowledgeBaseProps {
@@ -67,6 +84,15 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   const [knowledgeSummary, setKnowledgeSummary] = useState<KnowledgeSummary | null>(null);
   const [isLoadingKnowledge, setIsLoadingKnowledge] = useState(false);
   const [deletingFilename, setDeletingFilename] = useState<string | null>(null);
+  const [preview, setPreview] = useState<KnowledgePreview | null>(null);
+  const [previewFilenameLoading, setPreviewFilenameLoading] = useState<string | null>(null);
+  const [textEditorOpen, setTextEditorOpen] = useState(false);
+  const [textFilename, setTextFilename] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [isSavingText, setIsSavingText] = useState(false);
+  const [testQuestion, setTestQuestion] = useState("");
+  const [testResult, setTestResult] = useState<ChatTestResult | null>(null);
+  const [isTestingBot, setIsTestingBot] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedWorkspace =
@@ -102,12 +128,13 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
     setFile(null);
     setProgress(0);
     setKnowledgeSummary(null);
+    setPreview(null);
   };
 
   const validateAndSetFile = (candidate: File) => {
     const ext = candidate.name.split(".").pop()?.toLowerCase();
-    if (ext !== "pdf" && ext !== "txt") {
-      toast.error("Chỉ hỗ trợ tệp PDF và TXT.");
+    if (ext !== "pdf" && ext !== "txt" && ext !== "docx") {
+      toast.error("Chỉ hỗ trợ tệp PDF, TXT và DOCX.");
       return;
     }
 
@@ -214,11 +241,76 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
         `/workspaces/${selectedWorkspaceId}/knowledge/${encodeURIComponent(filename)}`
       );
       setKnowledgeSummary(response.data);
+      if (preview?.filename === filename) setPreview(null);
       toast.success(`Đã xóa ${filename} khỏi kho tri thức.`);
     } catch (err) {
       toast.error(getApiErrorDetail(err) || "Không thể xóa tài liệu.");
     } finally {
       setDeletingFilename(null);
+    }
+  };
+
+  const handlePreviewKnowledge = async (filename: string) => {
+    if (!selectedWorkspaceId) return;
+    setPreviewFilenameLoading(filename);
+    try {
+      const response = await api.get<KnowledgePreview>(
+        `/workspaces/${selectedWorkspaceId}/knowledge/${encodeURIComponent(filename)}/preview`
+      );
+      setPreview(response.data);
+    } catch (err) {
+      toast.error(getApiErrorDetail(err) || "Không thể xem trước tài liệu.");
+    } finally {
+      setPreviewFilenameLoading(null);
+    }
+  };
+
+  const openTextEditor = async (filename?: string) => {
+    setTextFilename(filename || "");
+    setTextContent("");
+    if (filename && selectedWorkspaceId) {
+      const response = await api.get<KnowledgePreview>(
+        `/workspaces/${selectedWorkspaceId}/knowledge/${encodeURIComponent(filename)}/preview`
+      );
+      setTextContent(response.data.chunks.map((chunk) => chunk.content).join("\n\n"));
+    }
+    setTextEditorOpen(true);
+  };
+
+  const saveTextKnowledge = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedWorkspaceId) return;
+    setIsSavingText(true);
+    try {
+      await api.post(`/workspaces/${selectedWorkspaceId}/knowledge/text`, {
+        filename: textFilename,
+        content: textContent,
+      });
+      toast.success("Đã lưu và nạp lại tri thức văn bản.");
+      setTextEditorOpen(false);
+      await fetchKnowledge();
+    } catch (error) {
+      toast.error(getApiErrorDetail(error) || "Không thể lưu tri thức văn bản.");
+    } finally {
+      setIsSavingText(false);
+    }
+  };
+
+  const testBot = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedWorkspaceId || !testQuestion.trim()) return;
+    setIsTestingBot(true);
+    setTestResult(null);
+    try {
+      const response = await api.post<ChatTestResult>(`/chat/${selectedWorkspaceId}`, {
+        message: testQuestion.trim(),
+        top_k: 3,
+      });
+      setTestResult(response.data);
+    } catch (error) {
+      toast.error(getApiErrorDetail(error) || "Không thể kiểm tra bot.");
+    } finally {
+      setIsTestingBot(false);
     }
   };
 
@@ -261,7 +353,8 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       </div>
 
       {selectedWorkspace && (
-        <div className="grid grid-cols-1 gap-8">
+        <>
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -273,6 +366,15 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                   Bot sẽ tìm kiếm câu trả lời trong các tài liệu dưới đây.
                 </p>
               </div>
+              <div className="flex gap-2">
+              <button
+                onClick={() => void openTextEditor()}
+                title="Thêm tri thức dạng văn bản"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-500"
+              >
+                <FilePenLine className="h-3.5 w-3.5" />
+                Thêm văn bản
+              </button>
               <button
                 onClick={() => {
                   setIsLoadingKnowledge(true);
@@ -285,6 +387,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                 <RefreshCw className={`h-3.5 w-3.5 ${isLoadingKnowledge ? "animate-spin" : ""}`} />
                 Làm mới
               </button>
+              </div>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-4">
@@ -306,10 +409,10 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               <div className="mt-5 flex min-h-40 flex-col items-center justify-center border border-dashed border-slate-800 text-center">
                 <Database className="mb-3 h-8 w-8 text-slate-600" />
                 <p className="font-semibold text-slate-300">Bot chưa có tài liệu nào</p>
-                <p className="mt-1 text-xs text-slate-500">Tải PDF hoặc TXT lên để bắt đầu xây dựng tri thức.</p>
+                <p className="mt-1 text-xs text-slate-500">Tải PDF, TXT hoặc DOCX lên để bắt đầu xây dựng tri thức.</p>
               </div>
             ) : (
-              <div className="mt-5 divide-y divide-white/5 border-y border-white/5">
+              <div className="mt-5 max-h-[460px] divide-y divide-white/5 overflow-y-auto border-y border-white/5 pr-1">
                 {knowledgeSummary.documents.map((document) => (
                   <div key={document.filename} className="flex items-center gap-4 py-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
@@ -324,21 +427,42 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                           : " · Tài liệu cũ"}
                       </p>
                     </div>
-                    <button
-                      onClick={() => void handleDeleteKnowledge(document.filename)}
-                      disabled={deletingFilename === document.filename}
-                      title="Xóa khỏi kho tri thức"
-                      className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {document.file_type === "txt" && (
+                        <button
+                          onClick={() => void openTextEditor(document.filename)}
+                          title="Sửa nhanh văn bản"
+                          className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-indigo-500/10 hover:text-indigo-500"
+                        >
+                          <FilePenLine className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => void handlePreviewKnowledge(document.filename)}
+                        disabled={previewFilenameLoading === document.filename}
+                        title="Xem nội dung AI đã học"
+                        className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-indigo-500/10 hover:text-indigo-500 disabled:opacity-50"
+                      >
+                        {previewFilenameLoading === document.filename
+                          ? <RefreshCw className="h-4 w-4 animate-spin" />
+                          : <Eye className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => void handleDeleteKnowledge(document.filename)}
+                        disabled={deletingFilename === document.filename}
+                        title="Xóa khỏi kho tri thức"
+                        className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </section>
 
-          <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
+          <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md xl:sticky xl:top-24">
             <h3 className="mb-4 flex items-center space-x-2 text-lg font-bold text-white">
               <FileText className="h-5 w-5 text-indigo-400" />
               <span>3. Nạp thêm tri thức</span>
@@ -359,7 +483,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                 ref={fileInputRef}
                 type="file"
                 className="hidden"
-                accept=".txt,.pdf"
+                accept=".txt,.pdf,.docx"
                 onChange={handleFileInput}
               />
 
@@ -371,7 +495,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                   <p className="text-center font-semibold text-white">
                     Kéo thả tệp vào đây hoặc bấm để chọn
                   </p>
-                  <p className="mt-2 text-xs text-slate-500">Hỗ trợ PDF, TXT tối đa 50MB</p>
+                  <p className="mt-2 text-xs text-slate-500">Hỗ trợ PDF, TXT, DOCX tối đa 50MB</p>
                 </>
               ) : (
                 <div className="flex flex-col items-center">
@@ -430,6 +554,112 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             >
               {isUploading ? "Đang xử lý..." : "Tải lên & Nạp vào ChromaDB"}
             </button>
+          </div>
+        </div>
+
+        <section className="border-y border-slate-200 bg-white px-6 py-6 text-slate-900">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-indigo-600" />
+            <h3 className="font-bold">Test Bot của bạn</h3>
+          </div>
+          <form onSubmit={testBot} className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <input
+              value={testQuestion}
+              onChange={(event) => setTestQuestion(event.target.value)}
+              placeholder="Đặt câu hỏi dựa trên tri thức vừa nạp..."
+              className="min-w-0 flex-1 rounded-md border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500"
+            />
+            <button disabled={isTestingBot || !testQuestion.trim()} className="inline-flex items-center justify-center gap-2 rounded-md bg-indigo-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50">
+              <Send className="h-4 w-4" />
+              {isTestingBot ? "Đang kiểm tra..." : "Gửi câu hỏi"}
+            </button>
+          </form>
+          {testResult && (
+            <div className="mt-5 border-l-2 border-indigo-500 pl-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600"><Bot className="h-4 w-4" /> Phản hồi của bot</div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">{testResult.answer}</p>
+              {testResult.sources.length > 0 && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Nguồn: {testResult.sources.map((source) => `${source.source_filename || "Tài liệu"}${source.page ? `, trang ${source.page}` : ""}`).join(" · ")}
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+        </>
+      )}
+
+      {textEditorOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+          <form onSubmit={saveTextKnowledge} className="flex max-h-[88vh] w-full max-w-3xl flex-col rounded-lg bg-white p-6 text-slate-900 shadow-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold">Tri thức dạng văn bản</h3>
+                <p className="mt-1 text-xs text-slate-500">Lưu lại sẽ thay thế tài liệu trùng tên và tạo lại embedding.</p>
+              </div>
+              <button type="button" onClick={() => setTextEditorOpen(false)} title="Đóng" className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+            </div>
+            <input
+              required
+              value={textFilename}
+              onChange={(event) => setTextFilename(event.target.value)}
+              placeholder="Tên tài liệu, ví dụ: chinh-sach-bao-hanh.txt"
+              className="mt-5 rounded-md border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500"
+            />
+            <textarea
+              required
+              value={textContent}
+              onChange={(event) => setTextContent(event.target.value)}
+              placeholder="Nhập nội dung bot cần học..."
+              className="mt-3 min-h-72 resize-y rounded-md border border-slate-300 p-4 text-sm leading-6 outline-none focus:border-indigo-500"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setTextEditorOpen(false)} className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-600">Hủy</button>
+              <button disabled={isSavingText} className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{isSavingText ? "Đang lưu..." : "Lưu và nạp tri thức"}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreview(null);
+          }}
+        >
+          <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase text-indigo-600">
+                  <BookOpenCheck className="h-4 w-4" />
+                  Nội dung AI đã học
+                </div>
+                <h3 className="mt-1 truncate text-lg font-bold text-slate-900">{preview.filename}</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  {preview.total_chunks} đoạn đã được tách và lưu trong kho vector
+                </p>
+              </div>
+              <button
+                onClick={() => setPreview(null)}
+                title="Đóng xem trước"
+                className="shrink-0 cursor-pointer rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto px-5 sm:px-6">
+              {preview.chunks.map((chunk) => (
+                <section key={chunk.chunk_index} className="border-b border-slate-200 py-5 last:border-b-0">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+                    <span>Đoạn {chunk.chunk_index + 1}</span>
+                    {chunk.page && <span>Trang {chunk.page}</span>}
+                  </div>
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{chunk.content}</p>
+                </section>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -39,5 +39,9 @@ def read_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Yeu cau dang nhap de tranh lo danh sach email cho nguoi la.
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Chỉ quản trị viên hệ thống được xem danh sách tài khoản.",
+        )
     return db.query(User).offset(skip).limit(limit).all()

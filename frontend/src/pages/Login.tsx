@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { AxiosError } from "axios";
 import api from "../services/api";
 import { Mail, Lock, Eye, EyeOff, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
@@ -21,6 +21,29 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const invitation = searchParams.get("invite");
+    if (invitation) sessionStorage.setItem("workspace_invitation", invitation);
+    const token = searchParams.get("token");
+    const googleEmail = searchParams.get("email");
+    if (!token) return;
+    localStorage.setItem("token", token);
+    if (googleEmail) localStorage.setItem("email", googleEmail);
+    const pendingInvitation = sessionStorage.getItem("workspace_invitation");
+    const acceptInvitation = pendingInvitation
+      ? api.post(`/workspaces/invitations/${pendingInvitation}/accept`)
+      : Promise.resolve();
+    void acceptInvitation.finally(() => {
+      sessionStorage.removeItem("workspace_invitation");
+      navigate("/dashboard", { replace: true });
+    });
+  }, [navigate, searchParams]);
+
+  const googleLoginUrl = `${
+    import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
+  }/auth/google/login`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +63,11 @@ const Login = () => {
         const response = await api.post("/auth/login", { email, password });
         localStorage.setItem("token", response.data.access_token);
         localStorage.setItem("email", email);
+        const pendingInvitation = sessionStorage.getItem("workspace_invitation");
+        if (pendingInvitation) {
+          await api.post(`/workspaces/invitations/${pendingInvitation}/accept`);
+          sessionStorage.removeItem("workspace_invitation");
+        }
         navigate("/dashboard");
       }
     } catch (err: unknown) {
@@ -51,42 +79,34 @@ const Login = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100 font-sans overflow-hidden">
-      {/* Background radial glow blobs */}
-      <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] rounded-full bg-violet-600/10 blur-[120px] pointer-events-none"></div>
-
-      <div className="w-full grid lg:grid-cols-12 min-h-screen relative z-10">
+    <div className="novachat-light flex min-h-screen overflow-hidden bg-[#f6f7f9] font-sans text-slate-900">
+      <div className="relative z-10 grid min-h-screen w-full lg:grid-cols-12">
         {/* Left Side - Branding & Visuals (Desktop only) */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col justify-between p-12 relative overflow-hidden border-r border-slate-900 bg-slate-950/40 backdrop-blur-sm">
-          {/* Decorative geometric patterns */}
-          <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-indigo-500/5 border border-indigo-500/10"></div>
-          <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-violet-500/5 border border-violet-500/10"></div>
-
+        <div className="relative hidden flex-col justify-between overflow-hidden border-r border-slate-200 bg-white p-12 lg:col-span-7 lg:flex">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <img src="/favicon.png" alt="NovaChat Logo" className="h-12 w-12 object-contain drop-shadow-[0_0_20px_rgba(99,102,241,0.5)] hover:scale-105 transition-transform" />
-            <span className="text-xl font-bold tracking-wider bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
+            <img src="/favicon.png" alt="NovaChat Logo" className="h-12 w-12 object-contain" />
+            <span className="text-xl font-bold text-slate-900">
               NovaChat AI
             </span>
           </div>
 
           {/* Center Showcase */}
           <div className="max-w-md my-auto space-y-8">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-xs font-semibold text-indigo-300">
-              <Sparkles className="h-3 w-3 animate-pulse" />
-              <span>Hệ thống Quản lý Bot AI Tương lai</span>
+            <div className="inline-flex items-center space-x-2 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
+              <Sparkles className="h-3 w-3" />
+              <span>Nền tảng quản lý Bot AI</span>
             </div>
 
             <div className="space-y-4">
-              <h1 className="text-4xl font-extrabold tracking-tight leading-tight text-white">
+              <h1 className="text-4xl font-extrabold leading-tight text-slate-900">
                 Tạo dựng và quản trị{" "}
-                <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-cyan-400 bg-clip-text text-transparent">
+                <span className="text-indigo-600">
                   Chatbot thông minh
                 </span>{" "}
                 chỉ trong vài phút.
               </h1>
-              <p className="text-slate-400 text-base leading-relaxed">
+              <p className="text-base leading-relaxed text-slate-600">
                 Nền tảng giúp bạn quản lý nhiều không gian làm việc khác nhau, huấn luyện dữ liệu tùy chỉnh và tích hợp trực tiếp các trợ lý ảo AI tốt nhất vào doanh nghiệp của bạn.
               </p>
             </div>
@@ -100,8 +120,8 @@ const Login = () => {
                 "Phân quyền quản trị thông tin bảo mật tuyệt đối",
               ].map((text, idx) => (
                 <li key={idx} className="flex items-start space-x-3">
-                  <CheckCircle2 className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-                  <span className="text-sm text-slate-300 font-medium">{text}</span>
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                  <span className="text-sm font-medium text-slate-700">{text}</span>
                 </li>
               ))}
             </ul>
@@ -114,26 +134,23 @@ const Login = () => {
         </div>
 
         {/* Right Side - Authentication Form */}
-        <div className="col-span-12 lg:col-span-5 flex items-center justify-center p-6 sm:p-12">
+        <div className="col-span-12 flex items-center justify-center bg-slate-50 p-6 sm:p-12 lg:col-span-5">
           <div className="w-full max-w-md space-y-8">
             {/* Branding for Mobile */}
             <div className="flex lg:hidden items-center justify-center space-x-3 mb-6">
-                <img src="/favicon.png" alt="NovaChat Logo" className="h-10 w-10 object-contain drop-shadow-[0_0_15px_rgba(99,102,241,0.4)]" />
-              <span className="text-2xl font-bold tracking-wider bg-gradient-to-r from-white via-indigo-200 to-violet-300 bg-clip-text text-transparent">
+                <img src="/favicon.png" alt="NovaChat Logo" className="h-10 w-10 object-contain" />
+              <span className="text-2xl font-bold text-slate-900">
                 NovaChat AI
               </span>
             </div>
 
             {/* Card Form */}
-            <div className="relative rounded-2xl border border-white/10 bg-white/5 p-8 backdrop-blur-xl shadow-2xl overflow-hidden">
-              {/* Top glow decoration in card */}
-              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-indigo-500 to-transparent"></div>
-              
+            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
               <div className="mb-8 text-center">
-                <h2 className="text-3xl font-extrabold tracking-tight text-white mb-2">
+                <h2 className="mb-2 text-3xl font-extrabold text-slate-900">
                   {isRegister ? "Đăng ký tài khoản" : "Chào mừng trở lại"}
                 </h2>
-                <p className="text-sm text-slate-400">
+                <p className="text-sm text-slate-600">
                   {isRegister
                     ? "Tạo tài khoản quản trị để trải nghiệm hệ thống"
                     : "Đăng nhập để quản lý chatbot của bạn"}
@@ -149,16 +166,16 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Địa chỉ Email
                   </label>
-                  <div className="relative rounded-xl border border-white/10 bg-white/5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                  <div className="relative rounded-lg border border-slate-200 bg-slate-50 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/10">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
                       <Mail className="h-5 w-5" />
                     </span>
                     <input
                       type="email"
-                      className="w-full bg-transparent pl-12 pr-4 py-3.5 text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-transparent py-3.5 pl-12 pr-4 text-slate-900 outline-none placeholder:text-slate-400"
                       placeholder="admin@novachat.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -168,16 +185,16 @@ const Login = () => {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-semibold text-slate-300">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     Mật khẩu
                   </label>
-                  <div className="relative rounded-xl border border-white/10 bg-white/5 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                  <div className="relative rounded-lg border border-slate-200 bg-slate-50 transition-all focus-within:border-indigo-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/10">
                     <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400">
                       <Lock className="h-5 w-5" />
                     </span>
                     <input
                       type={showPassword ? "text" : "password"}
-                      className="w-full bg-transparent pl-12 pr-12 py-3.5 text-white placeholder-slate-500 outline-none"
+                      className="w-full bg-transparent py-3.5 pl-12 pr-12 text-slate-900 outline-none placeholder:text-slate-400"
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -186,7 +203,7 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-white transition-colors"
+                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 transition-colors hover:text-slate-700"
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -196,14 +213,31 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="relative group w-full mt-2 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-px font-semibold text-white shadow-lg shadow-indigo-600/30 transition-all hover:shadow-indigo-500/40 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+                  className="group relative mt-2 w-full cursor-pointer overflow-hidden rounded-lg bg-indigo-600 font-semibold text-white transition-colors hover:bg-indigo-500 active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
                 >
-                  <div className="w-full rounded-xl bg-slate-950/20 py-3.5 px-4 transition-all group-hover:bg-transparent flex items-center justify-center space-x-2">
+                  <div className="flex w-full items-center justify-center space-x-2 px-4 py-3.5">
                     <span>{loading ? "Đang xử lý..." : isRegister ? "Đăng ký" : "Đăng nhập"}</span>
                     {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
                   </div>
                 </button>
               </form>
+
+              {!isRegister && (
+                <>
+                  <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    hoặc
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  <a
+                    href={googleLoginUrl}
+                    className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center font-bold text-blue-600">G</span>
+                    Tiếp tục với Google
+                  </a>
+                </>
+              )}
 
               <div className="mt-8 text-center">
                 <button

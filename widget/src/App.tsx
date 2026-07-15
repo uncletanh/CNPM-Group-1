@@ -1,12 +1,22 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageSquare, X, Send, Bot, User, Headset } from 'lucide-react';
 import { getWidgetConfig, type WidgetConfig } from './config';
-import { streamChatMessage, loadHistory, pollAgentMessages } from './api';
+import {
+  connectRealtime,
+  streamChatMessage,
+  loadHistory,
+  loadWidgetSettings,
+  pollAgentMessages,
+  requestHumanSupport,
+  type ChatSource,
+  type WidgetSettings,
+} from './api';
 
 interface WidgetMessage {
   id: number;
   text: string;
   sender: string; // 'user' | 'bot' | 'agent'
+  sources?: ChatSource[];
 }
 
 const GREETING: WidgetMessage = {
@@ -17,6 +27,13 @@ const GREETING: WidgetMessage = {
 };
 
 const POLL_INTERVAL_MS = 3000;
+const DEFAULT_SETTINGS: WidgetSettings = {
+  primary_color: "#4f46e5",
+  bot_name: "NovaChat AI",
+  greeting: GREETING.text,
+  avatar_url: null,
+  position: "right",
+};
 
 function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,6 +42,8 @@ function App() {
   const [isSending, setIsSending] = useState(false);
   const [hasPartialAnswer, setHasPartialAnswer] = useState(false);
   const [sessionStatus, setSessionStatus] = useState("bot_handling");
+  const [realtimeVersion, setRealtimeVersion] = useState(0);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [{ config, configError }] = useState<{
     config: WidgetConfig | null;
@@ -47,6 +66,16 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isOpen]);
+
+  useEffect(() => {
+    if (!config) return;
+    void loadWidgetSettings(config).then((loaded) => {
+      setSettings(loaded);
+      setMessages((current) => current.map((message) =>
+        message.id === GREETING.id ? { ...message, text: loaded.greeting } : message
+      ));
+    }).catch(() => undefined);
+  }, [config]);
 
   // Mo lai trang co session_key cu -> tai lai toan bo lich su hoi thoai.
   useEffect(() => {
@@ -89,6 +118,22 @@ function App() {
     const timer = window.setInterval(() => void pollOnce(), POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [config, isOpen, pollOnce]);
+  useEffect(() => {
+    if (!isOpen || !config) return;
+    return connectRealtime(config, () => void pollOnce()) || undefined;
+  }, [config, isOpen, pollOnce, realtimeVersion]);
+
+  const handleRequestHuman = async () => {
+    if (!config || sessionStatus !== "bot_handling") return;
+    try {
+      await requestHumanSupport(config);
+      setSessionStatus("waiting_human");
+      setRealtimeVersion((version) => version + 1);
+    } catch (error) {
+      const text = error instanceof Error ? error.message : "Không thể kết nối với nhân viên hỗ trợ.";
+      setMessages((prev) => [...prev, { id: Date.now(), text, sender: "system" }]);
+    }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,7 +173,16 @@ function App() {
         onHuman: () => {
           // Nhan vien dang phu trach: cap nhat trang thai ngay de hien banner,
           // phan hoi that se den qua poll.
-          setSessionStatus("human_handling");
+          setSessionStatus((status) => status === "waiting_human" ? status : "human_handling");
+        },
+        onSession: () => setRealtimeVersion((version) => version + 1),
+        onDone: (result) => {
+          if (result.status) setSessionStatus(result.status);
+          if (result.sources?.length) {
+            setMessages((prev) => prev.map((message) =>
+              message.id === botMsgId ? { ...message, sources: result.sources } : message
+            ));
+          }
         },
       });
     } catch (error) {
@@ -141,23 +195,29 @@ function App() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-4 font-sans">
+    <div className={`fixed bottom-6 z-50 flex flex-col space-y-4 font-sans ${settings.position === "left" ? "left-6 items-start" : "right-6 items-end"}`}>
       {/* Khung Chat */}
       {isOpen && (
         <div className="w-[360px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all duration-300 origin-bottom-right">
           
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 flex items-center justify-between shadow-md z-10">
+          <div className="p-4 flex items-center justify-between shadow-md z-10" style={{ backgroundColor: settings.primary_color }}>
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                <Bot className="w-6 h-6 text-white" />
+                {settings.avatar_url
+                  ? <img src={settings.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                  : <Bot className="w-6 h-6 text-white" />}
               </div>
               <div>
-                <h3 className="text-white font-bold text-sm tracking-wide">NovaChat AI</h3>
+                <h3 className="text-white font-bold text-sm tracking-wide">{settings.bot_name}</h3>
                 <div className="flex items-center space-x-1.5 mt-0.5">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   <span className="text-indigo-100 text-xs font-medium">
-                    {sessionStatus === "human_handling" ? "Nhân viên đang hỗ trợ" : "Trợ lý trực tuyến"}
+                    {sessionStatus === "human_handling"
+                      ? "Nhân viên đang hỗ trợ"
+                      : sessionStatus === "waiting_human"
+                        ? "Đang tìm nhân viên"
+                        : "Trợ lý trực tuyến"}
                   </span>
                 </div>
               </div>
@@ -181,6 +241,12 @@ function App() {
               <div className="flex items-center justify-center space-x-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-xs text-amber-700 font-medium">
                 <Headset className="w-4 h-4" />
                 <span>Bạn đang được nhân viên hỗ trợ trực tiếp.</span>
+              </div>
+            )}
+            {sessionStatus === "waiting_human" && (
+              <div className="flex items-center justify-center space-x-2 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 text-xs text-sky-700 font-medium">
+                <Headset className="w-4 h-4" />
+                <span>Đã gửi yêu cầu. Vui lòng chờ nhân viên tiếp nhận.</span>
               </div>
             )}
 
@@ -211,13 +277,24 @@ function App() {
                   <div>
                     <div className={`p-3 rounded-2xl text-sm shadow-sm ${
                       isUser
-                        ? 'bg-indigo-600 text-white rounded-br-none'
+                        ? 'text-white rounded-br-none'
                         : isAgent
                           ? 'bg-amber-500 text-white rounded-bl-none'
                           : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
-                    }`}>
+                    }`} style={isUser ? { backgroundColor: settings.primary_color } : undefined}>
                       {msg.text}
                     </div>
+                    {msg.sources && msg.sources.length > 0 && (
+                      <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-500 shadow-sm">
+                        <div className="font-semibold text-slate-700">Nguồn tham khảo</div>
+                        {msg.sources.map((source, index) => (
+                          <div key={`${source.source_filename}-${source.chunk_index}-${index}`}>
+                            {source.source_filename || "Tài liệu"}
+                            {source.page ? `, trang ${source.page}` : ""}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {isAgent && (
                       <div className="text-[9px] text-amber-600 font-semibold mt-1 ml-1">Nhân viên hỗ trợ</div>
                     )}
@@ -243,6 +320,16 @@ function App() {
 
           {/* Footer (Input) */}
           <div className="p-4 bg-white border-t border-slate-100">
+            {sessionStatus === "bot_handling" && (
+              <button
+                type="button"
+                onClick={() => void handleRequestHuman()}
+                className="mb-3 flex w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
+              >
+                <Headset className="w-4 h-4" />
+                Gặp nhân viên
+              </button>
+            )}
             <form onSubmit={handleSend} className="relative flex items-center">
               <input 
                 type="text" 
@@ -254,7 +341,8 @@ function App() {
               <button
                 type="submit"
                 disabled={!inputText.trim() || isSending}
-                className="absolute right-1.5 p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:hover:bg-indigo-600 cursor-pointer"
+                className="absolute right-1.5 p-2 text-white rounded-full transition-colors disabled:opacity-50 cursor-pointer"
+                style={{ backgroundColor: settings.primary_color }}
               >
                 <Send className="w-4 h-4 ml-0.5" />
               </button>
@@ -273,6 +361,7 @@ function App() {
         className={`${
           isOpen ? 'bg-slate-800 rotate-90 scale-90' : 'bg-indigo-600 hover:scale-110 shadow-indigo-600/30'
         } w-14 h-14 rounded-full text-white shadow-xl flex items-center justify-center transition-all duration-300 cursor-pointer`}
+        style={!isOpen ? { backgroundColor: settings.primary_color } : undefined}
       >
         {isOpen ? <X className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
       </button>

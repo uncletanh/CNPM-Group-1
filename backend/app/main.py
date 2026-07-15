@@ -3,11 +3,20 @@ from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from app.api.v1 import users, auth, workspaces, chat
-from app.db.session import Base, engine, ensure_workspace_schema
+from app.db.session import Base, engine, ensure_chat_session_schema, ensure_workspace_schema
+from app.models.workspace import WorkspaceInvitation, WorkspaceMember  # noqa: F401
+from app.services.observability import (
+    OperationsMiddleware,
+    configure_logging,
+    metrics_response,
+)
+
+configure_logging()
 
 # Tạo tất cả các bảng trong Database (Tạm thời dùng cách này để dễ setup cho sinh viên)
 Base.metadata.create_all(bind=engine)
 ensure_workspace_schema()
+ensure_chat_session_schema()
 
 app = FastAPI(
     title="NovaChat AI Backend",
@@ -32,7 +41,10 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
-        is_public_chat = request.url.path.startswith("/api/v1/chat")
+        requested_headers = request.headers.get("access-control-request-headers", "").lower()
+        is_public_chat = request.url.path.startswith("/api/v1/chat") and (
+            "x-widget-token" in request.headers or "x-widget-token" in requested_headers
+        )
 
         if request.method == "OPTIONS":
             headers = {
@@ -56,6 +68,17 @@ class DynamicCORSMiddleware(BaseHTTPMiddleware):
 
 
 app.add_middleware(DynamicCORSMiddleware)
+app.add_middleware(OperationsMiddleware)
+try:
+    from starlette.middleware.sessions import SessionMiddleware
+
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=os.getenv("SECRET_KEY", "development-secret"),
+    )
+except ModuleNotFoundError:
+    # OAuth Google sẽ hoạt động sau khi cài đầy đủ requirements.
+    pass
 
 # Đăng ký các router
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
@@ -67,3 +90,13 @@ app.include_router(chat.router, prefix="/api/v1/chat", tags=["Chat"])
 @app.get("/")
 def read_root():
     return {"message": "Welcome to NovaChat AI API"}
+
+
+@app.get("/health", tags=["Operations"])
+def health_check():
+    return {"status": "ok", "service": "novachat-backend"}
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics():
+    return metrics_response()

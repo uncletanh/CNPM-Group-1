@@ -1,4 +1,4 @@
-from app.api.v1.workspaces import get_knowledge_summary
+from app.api.v1.workspaces import get_knowledge_preview, get_knowledge_summary
 from app.db.chroma import get_chroma_client, get_workspace_collection
 
 
@@ -36,6 +36,12 @@ def main():
         assert summary.total_chunks == 2
         assert summary.documents[0].filename == "huong-dan.txt"
         assert summary.documents[0].file_size == 2048
+
+        preview = get_knowledge_preview(int(workspace_id), "huong-dan.txt")
+        assert preview.total_chunks == 2
+        assert preview.chunks[0].chunk_index == 0
+        assert preview.chunks[0].content == "Noi dung thu nghiem mot"
+        assert preview.chunks[1].content == "Noi dung thu nghiem hai"
 
         matching = collection.get(where={"source_filename": "huong-dan.txt"}, include=[])
         assert len(matching["ids"]) == 2

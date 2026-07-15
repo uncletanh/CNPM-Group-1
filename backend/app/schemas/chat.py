@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
 class ChatSource(BaseModel):
     source_filename: str | None = None
     chunk_index: int | None = None
+    page: int | None = None
     distance: float | None = None
     preview: str
 
@@ -38,6 +39,9 @@ class ChatSessionResponse(BaseModel):
     id: int
     session_key: str
     status: str
+    assigned_agent_id: int | None = None
+    handoff_requested_at: datetime | None = None
+    fallback_sent_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -47,6 +51,10 @@ class ChatSessionResponse(BaseModel):
 
 class AgentReplyRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
+
+
+class HumanSupportRequest(BaseModel):
+    session_key: str | None = Field(default=None, min_length=1, max_length=64)
 
 
 class PollResponse(BaseModel):
