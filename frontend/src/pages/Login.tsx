@@ -44,7 +44,7 @@ const Login = () => {
       }
     } catch (err: unknown) {
       console.error(err);
-      setError(getApiErrorDetail(err) || "Da xay ra loi. Vui long kiem tra lai ket noi.");
+      setError(getApiErrorDetail(err) || "Đã xảy ra lỗi. Vui lòng kiểm tra lại kết nối.");
     } finally {
       setLoading(false);
     }

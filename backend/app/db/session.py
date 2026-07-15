@@ -21,18 +21,33 @@ def ensure_workspace_schema() -> None:
         return
 
     workspace_columns = {column["name"] for column in inspector.get_columns("workspaces")}
-    if "system_prompt" in workspace_columns:
-        return
 
-    with engine.begin() as connection:
-        connection.execute(
-            text(
-                "ALTER TABLE workspaces "
-                "ADD COLUMN system_prompt TEXT NOT NULL DEFAULT "
-                "'Ban la tro ly ao cua cong ty. Chi tra loi dua tren context duoc cung cap. "
-                "Neu context khong co thong tin phu hop, hay de nghi khach hang gap nhan vien ho tro.'"
+    if "system_prompt" not in workspace_columns:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE workspaces "
+                    "ADD COLUMN system_prompt TEXT NOT NULL DEFAULT "
+                    "'Ban la tro ly ao cua cong ty. Chi tra loi dua tren context duoc cung cap. "
+                    "Neu context khong co thong tin phu hop, hay de nghi khach hang gap nhan vien ho tro.'"
+                )
             )
-        )
+
+    if "widget_token" not in workspace_columns:
+        import uuid
+
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN widget_token VARCHAR"))
+            rows = connection.execute(text("SELECT id FROM workspaces")).fetchall()
+            for (workspace_id,) in rows:
+                connection.execute(
+                    text("UPDATE workspaces SET widget_token = :token WHERE id = :id"),
+                    {"token": uuid.uuid4().hex, "id": workspace_id},
+                )
+
+    if "allowed_origin" not in workspace_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN allowed_origin VARCHAR"))
 
 
 def get_db():

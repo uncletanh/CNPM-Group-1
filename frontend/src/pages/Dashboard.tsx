@@ -4,6 +4,11 @@ import type { AxiosError } from "axios";
 import api from "../services/api";
 import { Toaster } from "react-hot-toast";
 import KnowledgeBase from "./KnowledgeBase";
+import Omnibox from "./Omnibox";
+import BotConfig from "./BotConfig";
+import Analytics from "./Analytics";
+import SystemSettings from "./SystemSettings";
+import WorkspaceManagement from "./WorkspaceManagement";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -20,13 +25,16 @@ import {
   Database,
   Activity,
   Shield,
-  ShieldAlert
+  ShieldAlert,
+  MessagesSquare
 } from "lucide-react";
 
 interface Workspace {
   id: number;
   name: string;
   system_prompt?: string;
+  widget_token?: string;
+  allowed_origin?: string | null;
   owner_id: number;
 }
 
@@ -103,7 +111,7 @@ const Dashboard = () => {
       void fetchWorkspaces();
     } catch (err: unknown) {
       console.error(err);
-      alert(getApiErrorDetail(err) || "Da xay ra loi khi tao Workspace.");
+      alert(getApiErrorDetail(err) || "Đã xảy ra lỗi khi tạo workspace.");
     } finally {
       setCreateLoading(false);
     }
@@ -117,7 +125,7 @@ const Dashboard = () => {
       void fetchWorkspaces();
     } catch (err: unknown) {
       console.error(err);
-      alert(getApiErrorDetail(err) || "Da xay ra loi khi xoa Workspace.");
+      alert(getApiErrorDetail(err) || "Đã xảy ra lỗi khi xóa workspace.");
     }
   };
 
@@ -224,6 +232,18 @@ const Dashboard = () => {
             </button>
 
             <button
+              onClick={() => setActiveTab("omnibox")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer ${
+                activeTab === "omnibox"
+                  ? "bg-gradient-to-r from-indigo-500/10 to-transparent border-l-2 border-indigo-500 text-indigo-400"
+                  : "text-slate-400 hover:bg-slate-900/60 hover:text-slate-200"
+              }`}
+            >
+              <MessagesSquare className="h-4 w-4" />
+              <span>Hộp thoại</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab("analytics")}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-sm transition-all duration-200 cursor-pointer ${
                 activeTab === "analytics"
@@ -306,6 +326,27 @@ const Dashboard = () => {
               workspaces={workspaces}
               initialWorkspaceId={selectedKnowledgeWorkspaceId}
               onWorkspacesChanged={fetchWorkspaces}
+            />
+          ) : activeTab === 'omnibox' ? (
+            <Omnibox workspaces={workspaces} />
+          ) : activeTab === 'bot' ? (
+            <BotConfig workspaces={workspaces} onWorkspacesChanged={fetchWorkspaces} />
+          ) : activeTab === 'analytics' ? (
+            <Analytics workspaces={workspaces} />
+          ) : activeTab === 'settings' ? (
+            <SystemSettings />
+          ) : activeTab === 'workspaces' ? (
+            <WorkspaceManagement
+              workspaces={workspaces}
+              loading={loading}
+              searchQuery={searchQuery}
+              onCreate={() => setIsModalOpen(true)}
+              onDelete={setDeleteConfirmId}
+              onOpenBotConfig={() => setActiveTab("bot")}
+              onOpenKnowledge={(workspaceId) => {
+                setSelectedKnowledgeWorkspaceId(workspaceId);
+                setActiveTab("knowledge");
+              }}
             />
           ) : (
             <>
