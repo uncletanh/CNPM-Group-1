@@ -30,7 +30,7 @@ def get_workspace_collection(workspace_id: str):
     Trả về hoặc tự động tạo mới một collection riêng cho workspace_id.
     Logic này đảm bảo dữ liệu vector của các workspace được phân tách.
     """
-    collection_name = f"workspace_{workspace_id}_collection"
+    collection_name = f"workspace_{workspace_id}_knowledge"
 
     return chroma_client.get_or_create_collection(
         name=collection_name,

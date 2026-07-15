@@ -11,6 +11,7 @@ NovaChat AI là nền tảng Chatbot ứng dụng RAG (Retrieval-Augmented Gener
 - **Python:** Phiên bản `3.11` hoặc `3.12` (Không dùng bản mới hơn để tránh lỗi biên dịch thư viện AI).
 - **Node.js:** Phiên bản `18.0.0` trở lên.
 - **Git:** Để pull/push code.
+- **Ollama:** Cài từ [ollama.com](https://ollama.com), sau đó chạy `ollama pull qwen2.5:3b`. Đây là LLM chạy local mà tính năng Chat (RAG) dùng — nếu không có, gọi `/api/v1/chat` sẽ bị lỗi 503 "Không thể kết nối Ollama".
 
 ---
 
@@ -74,7 +75,30 @@ Giao diện sẽ chạy tại: `http://localhost:5173`.
 
 ---
 
-## 👨‍💻 4. Quy trình làm việc (Git Flow)
+## 💬 4. Tính năng Chat & Human-in-the-loop
+
+Hệ thống hỗ trợ đầy đủ luồng chatbot RAG + tiếp quản bởi nhân viên:
+
+- **Chat RAG có streaming:** Widget gọi `POST /api/v1/chat/{workspace_id}/stream` (SSE) để hiển thị câu trả lời theo hiệu ứng gõ chữ thời gian thực, dựa trên tri thức đã nạp trong ChromaDB.
+- **Lưu lịch sử hội thoại:** Mỗi phiên chat là một `ChatSession` (khoá `session_key`), mọi tin nhắn (khách/bot/nhân viên) được lưu vào bảng `messages`.
+- **Hộp thoại (Omnibox):** Trong Dashboard → tab **Hộp thoại**, admin theo dõi mọi cuộc hội thoại theo thời gian thực, xem nội dung, và **Tiếp quản** khi cần hỗ trợ trực tiếp.
+- **Human Takeover:** Khi nhân viên bấm *Tiếp quản* (`status = human_handling`), bot ngừng trả lời; nhân viên nhắn trực tiếp, khách nhận phản hồi qua cơ chế polling. Bấm *Đã xử lý* (`resolved`) để trả quyền lại cho bot.
+- **Bảo mật widget:** Endpoint `/chat` công khai được bảo vệ bằng `widget_token` riêng của từng workspace (không phải JWT admin), kèm tuỳ chọn khoá theo domain (`allowed_origin`).
+
+### Nhúng Widget vào website khách hàng
+
+```html
+<script src="https://cdn-cua-ban/script.umd.js"
+        data-workspace-id="1"
+        data-widget-token="<widget_token lay trong Dashboard>"
+        data-api-url="https://api-cua-ban/api/v1"></script>
+```
+
+Khi chạy widget cục bộ (`cd widget && npm run dev`), copy `widget/.env.example` → `widget/.env.local` và điền `VITE_WORKSPACE_ID` + `VITE_WIDGET_TOKEN`.
+
+---
+
+## 👨‍💻 5. Quy trình làm việc (Git Flow)
 
 Vui lòng tuân thủ quy tắc Pair Programming. **Tuyệt đối không push trực tiếp lên nhánh `main`.**
 

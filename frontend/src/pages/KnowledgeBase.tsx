@@ -1,6 +1,6 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { AxiosError } from "axios";
-import { CheckCircle2, FileText, ShieldAlert, UploadCloud, X } from "lucide-react";
+import { BookOpenCheck, CheckCircle2, Database, FileText, RefreshCw, ShieldAlert, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../services/api";
 
@@ -18,6 +18,20 @@ interface KnowledgeUploadResult {
   collection_name: string;
 }
 
+interface KnowledgeDocument {
+  filename: string;
+  file_size: number | null;
+  chunks: number;
+  uploaded_at: string | null;
+  file_type: string | null;
+}
+
+interface KnowledgeSummary {
+  total_documents: number;
+  total_chunks: number;
+  documents: KnowledgeDocument[];
+}
+
 interface KnowledgeBaseProps {
   workspaces: Workspace[];
   initialWorkspaceId?: number | null;
@@ -28,8 +42,6 @@ interface ApiErrorBody {
   detail?: string;
 }
 
-const DEFAULT_SYSTEM_PROMPT =
-  "Ban la tro ly ao cua cong ty. Chi tra loi dua tren context duoc cung cap. Neu context khong co thong tin phu hop, hay de nghi khach hang gap nhan vien ho tro.";
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const getApiErrorDetail = (error: unknown) => {
@@ -40,7 +52,6 @@ const getApiErrorDetail = (error: unknown) => {
 const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   workspaces,
   initialWorkspaceId,
-  onWorkspacesChanged,
 }) => {
   const initialWorkspace = initialWorkspaceId
     ? workspaces.find((workspace) => workspace.id === initialWorkspaceId)
@@ -53,10 +64,9 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadResult, setUploadResult] = useState<KnowledgeUploadResult | null>(null);
-  const [systemPrompt, setSystemPrompt] = useState(
-    initialWorkspace?.system_prompt || (initialWorkspace ? DEFAULT_SYSTEM_PROMPT : "")
-  );
-  const [isSavingPrompt, setIsSavingPrompt] = useState(false);
+  const [knowledgeSummary, setKnowledgeSummary] = useState<KnowledgeSummary | null>(null);
+  const [isLoadingKnowledge, setIsLoadingKnowledge] = useState(false);
+  const [deletingFilename, setDeletingFilename] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedWorkspace =
@@ -64,36 +74,50 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       ? undefined
       : workspaces.find((workspace) => workspace.id === selectedWorkspaceId);
 
+  const fetchKnowledge = useCallback(async () => {
+    if (!selectedWorkspaceId) return;
+    try {
+      const response = await api.get<KnowledgeSummary>(`/workspaces/${selectedWorkspaceId}/knowledge`);
+      setKnowledgeSummary(response.data);
+    } catch (err) {
+      toast.error(getApiErrorDetail(err) || "Không thể tải danh sách tri thức.");
+    } finally {
+      setIsLoadingKnowledge(false);
+    }
+  }, [selectedWorkspaceId]);
+
+  useEffect(() => {
+    if (!selectedWorkspaceId) return;
+    const timer = window.setTimeout(() => {
+      setIsLoadingKnowledge(true);
+      void fetchKnowledge();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [selectedWorkspaceId, fetchKnowledge]);
+
   const handleWorkspaceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextWorkspaceId = e.target.value === "" ? "" : Number(e.target.value);
     setSelectedWorkspaceId(nextWorkspaceId);
     setUploadResult(null);
     setFile(null);
     setProgress(0);
-
-    if (nextWorkspaceId === "") {
-      setSystemPrompt("");
-      return;
-    }
-
-    const workspace = workspaces.find((item) => item.id === nextWorkspaceId);
-    setSystemPrompt(workspace?.system_prompt || DEFAULT_SYSTEM_PROMPT);
+    setKnowledgeSummary(null);
   };
 
   const validateAndSetFile = (candidate: File) => {
     const ext = candidate.name.split(".").pop()?.toLowerCase();
     if (ext !== "pdf" && ext !== "txt") {
-      toast.error("Chi ho tro file PDF va TXT.");
+      toast.error("Chỉ hỗ trợ tệp PDF và TXT.");
       return;
     }
 
     if (candidate.size > MAX_FILE_SIZE) {
-      toast.error("File vuot qua gioi han 50MB.");
+      toast.error("Tệp vượt quá giới hạn 50MB.");
       return;
     }
 
     if (candidate.size === 0) {
-      toast.error("File dang rong.");
+      toast.error("Tệp đang rỗng.");
       return;
     }
 
@@ -134,12 +158,12 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
 
   const handleUpload = async () => {
     if (!selectedWorkspaceId) {
-      toast.error("Vui long chon Workspace truoc.");
+      toast.error("Vui lòng chọn workspace trước.");
       return;
     }
 
     if (!file) {
-      toast.error("Vui long chon file de tai len.");
+      toast.error("Vui lòng chọn tệp để tải lên.");
       return;
     }
 
@@ -170,42 +194,38 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
 
       setProgress(100);
       setUploadResult(response.data);
-      toast.success(`Da nap ${response.data.chunks} chunks vao ChromaDB.`);
+      toast.success(`Đã nạp ${response.data.chunks} đoạn dữ liệu vào ChromaDB.`);
       clearFile();
+      await fetchKnowledge();
     } catch (err: unknown) {
       setProgress(0);
-      toast.error(getApiErrorDetail(err) || "Loi khi nap tri thuc.");
+      toast.error(getApiErrorDetail(err) || "Lỗi khi nạp tri thức.");
     } finally {
       window.clearInterval(processingTimer);
       setIsUploading(false);
     }
   };
 
-  const handleSavePrompt = async () => {
-    if (!selectedWorkspaceId) {
-      toast.error("Vui long chon Workspace truoc.");
-      return;
-    }
-
-    const trimmedPrompt = systemPrompt.trim();
-    if (trimmedPrompt.length < 20) {
-      toast.error("System prompt can it nhat 20 ky tu.");
-      return;
-    }
-
-    setIsSavingPrompt(true);
+  const handleDeleteKnowledge = async (filename: string) => {
+    if (!selectedWorkspaceId || !window.confirm(`Xóa "${filename}" khỏi kho tri thức của bot?`)) return;
+    setDeletingFilename(filename);
     try {
-      await api.put(`/workspaces/${selectedWorkspaceId}/prompt`, {
-        system_prompt: trimmedPrompt,
-      });
-      setSystemPrompt(trimmedPrompt);
-      await onWorkspacesChanged?.();
-      toast.success("Da cap nhat System Prompt.");
-    } catch (err: unknown) {
-      toast.error(getApiErrorDetail(err) || "Cap nhat System Prompt that bai.");
+      const response = await api.delete<KnowledgeSummary>(
+        `/workspaces/${selectedWorkspaceId}/knowledge/${encodeURIComponent(filename)}`
+      );
+      setKnowledgeSummary(response.data);
+      toast.success(`Đã xóa ${filename} khỏi kho tri thức.`);
+    } catch (err) {
+      toast.error(getApiErrorDetail(err) || "Không thể xóa tài liệu.");
     } finally {
-      setIsSavingPrompt(false);
+      setDeletingFilename(null);
     }
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (bytes === null) return "Chưa có dữ liệu";
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   };
 
   return (
@@ -214,24 +234,24 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
         <div>
           <h2 className="flex items-center space-x-2 text-2xl font-bold text-white">
             <ShieldAlert className="h-6 w-6 text-indigo-400" />
-            <span>Quan ly Tri thuc & Tinh cach Bot</span>
+            <span>Quản lý Tri thức</span>
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Nap tai lieu PDF/TXT vao ChromaDB va cau hinh guardrails cho chatbot.
+            Nạp tài liệu PDF/TXT vào ChromaDB làm nguồn tri thức cho chatbot. (Tính cách bot cấu hình ở tab "Cấu hình Bot AI".)
           </p>
         </div>
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
         <label className="mb-2 block text-sm font-semibold text-slate-300">
-          1. Chon Workspace
+          1. Chọn workspace
         </label>
         <select
           className="w-full appearance-none rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none transition-all focus:border-indigo-500 md:w-1/2"
           value={selectedWorkspaceId}
           onChange={handleWorkspaceChange}
         >
-          <option value="">-- Vui long chon Workspace --</option>
+          <option value="">-- Vui lòng chọn workspace --</option>
           {workspaces.map((workspace) => (
             <option key={workspace.id} value={workspace.id}>
               {workspace.name} (ID: #{workspace.id})
@@ -241,35 +261,87 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       </div>
 
       {selectedWorkspace && (
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
-            <h3 className="mb-4 flex items-center space-x-2 text-lg font-bold text-white">
-              <ShieldAlert className="h-5 w-5 text-indigo-400" />
-              <span>2. System Prompt</span>
-            </h3>
-            <textarea
-              className="min-h-[220px] w-full flex-1 resize-none rounded-xl border border-white/10 bg-slate-950 p-4 text-white outline-none transition-all placeholder:text-slate-500 focus:border-indigo-500"
-              placeholder="Nhap system prompt..."
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-            />
-            <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-              <span>Workspace: {selectedWorkspace.name}</span>
-              <span>{systemPrompt.trim().length}/4000</span>
+        <div className="grid grid-cols-1 gap-8">
+          <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="flex items-center gap-2 text-lg font-bold text-white">
+                  <BookOpenCheck className="h-5 w-5 text-emerald-400" />
+                  <span>2. Tri thức đã nạp</span>
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Bot sẽ tìm kiếm câu trả lời trong các tài liệu dưới đây.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsLoadingKnowledge(true);
+                  void fetchKnowledge();
+                }}
+                disabled={isLoadingKnowledge}
+                title="Làm mới danh sách"
+                className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isLoadingKnowledge ? "animate-spin" : ""}`} />
+                Làm mới
+              </button>
             </div>
-            <button
-              onClick={handleSavePrompt}
-              disabled={isSavingPrompt}
-              className="mt-4 w-full cursor-pointer rounded-xl bg-indigo-600 py-3 font-bold text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSavingPrompt ? "Dang luu..." : "Luu System Prompt"}
-            </button>
-          </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-4">
+              <div className="rounded-xl bg-slate-950/60 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Tài liệu</p>
+                <p className="mt-1 text-2xl font-bold text-white">{knowledgeSummary?.total_documents ?? 0}</p>
+              </div>
+              <div className="rounded-xl bg-slate-950/60 p-4">
+                <p className="text-xs font-semibold uppercase text-slate-500">Đoạn tri thức</p>
+                <p className="mt-1 text-2xl font-bold text-white">{knowledgeSummary?.total_chunks ?? 0}</p>
+              </div>
+            </div>
+
+            {isLoadingKnowledge && !knowledgeSummary ? (
+              <div className="flex min-h-40 items-center justify-center text-sm text-slate-500">
+                Đang đọc kho tri thức...
+              </div>
+            ) : !knowledgeSummary?.documents.length ? (
+              <div className="mt-5 flex min-h-40 flex-col items-center justify-center border border-dashed border-slate-800 text-center">
+                <Database className="mb-3 h-8 w-8 text-slate-600" />
+                <p className="font-semibold text-slate-300">Bot chưa có tài liệu nào</p>
+                <p className="mt-1 text-xs text-slate-500">Tải PDF hoặc TXT lên để bắt đầu xây dựng tri thức.</p>
+              </div>
+            ) : (
+              <div className="mt-5 divide-y divide-white/5 border-y border-white/5">
+                {knowledgeSummary.documents.map((document) => (
+                  <div key={document.filename} className="flex items-center gap-4 py-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-white">{document.filename}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {document.chunks} đoạn · {formatFileSize(document.file_size)}
+                        {document.uploaded_at
+                          ? ` · Nạp ${new Date(document.uploaded_at).toLocaleString("vi-VN")}`
+                          : " · Tài liệu cũ"}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => void handleDeleteKnowledge(document.filename)}
+                      disabled={deletingFilename === document.filename}
+                      title="Xóa khỏi kho tri thức"
+                      className="cursor-pointer rounded-lg p-2 text-slate-500 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
 
           <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
             <h3 className="mb-4 flex items-center space-x-2 text-lg font-bold text-white">
               <FileText className="h-5 w-5 text-indigo-400" />
-              <span>3. Nap Knowledge Base</span>
+              <span>3. Nạp thêm tri thức</span>
             </h3>
 
             <div
@@ -297,9 +369,9 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                     <UploadCloud className="h-7 w-7 text-indigo-400" />
                   </div>
                   <p className="text-center font-semibold text-white">
-                    Keo tha file vao day hoac click de chon
+                    Kéo thả tệp vào đây hoặc bấm để chọn
                   </p>
-                  <p className="mt-2 text-xs text-slate-500">Ho tro PDF, TXT toi da 50MB</p>
+                  <p className="mt-2 text-xs text-slate-500">Hỗ trợ PDF, TXT tối đa 50MB</p>
                 </>
               ) : (
                 <div className="flex flex-col items-center">
@@ -327,7 +399,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             {isUploading && (
               <div className="mt-4">
                 <div className="mb-2 flex justify-between text-xs text-slate-400">
-                  <span>{progress < 70 ? "Dang tai file..." : "Dang chunk va embedding..."}</span>
+                  <span>{progress < 70 ? "Đang tải tệp..." : "Đang chia đoạn và tạo embedding..."}</span>
                   <span>{progress}%</span>
                 </div>
                 <div className="h-2 w-full rounded-full bg-slate-800">
@@ -343,7 +415,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               <div className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-300">
                 <div className="mb-2 flex items-center gap-2 font-bold">
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>Nap tri thuc thanh cong</span>
+                  <span>Nạp tri thức thành công</span>
                 </div>
                 <p>File: {uploadResult.filename}</p>
                 <p>Chunks: {uploadResult.chunks}</p>
@@ -356,7 +428,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               disabled={isUploading || !file}
               className="mt-6 w-full cursor-pointer rounded-xl bg-indigo-600 py-3 font-bold text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isUploading ? "Dang xu ly..." : "Tai len & Nap vao ChromaDB"}
+              {isUploading ? "Đang xử lý..." : "Tải lên & Nạp vào ChromaDB"}
             </button>
           </div>
         </div>

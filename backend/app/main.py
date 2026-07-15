@@ -1,6 +1,7 @@
 import os
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from app.api.v1 import users, auth, workspaces, chat
 from app.db.session import Base, engine, ensure_workspace_schema
 
@@ -14,27 +15,47 @@ app = FastAPI(
     description="Backend API for NovaChat AI Platform"
 )
 
-# Cấu hình CORS để widget hoặc frontend gọi API không bị lỗi
-origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+# Dashboard admin (frontend) chỉ được gọi từ các origin cố định dưới đây.
+ADMIN_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
 frontend_url = os.getenv("FRONTEND_URL")
-widget_url = os.getenv("WIDGET_URL")
 if frontend_url:
-    origins.append(frontend_url)
-if widget_url:
-    origins.extend([origin.strip() for origin in widget_url.split(",") if origin.strip()])
+    ADMIN_ORIGINS.add(frontend_url)
 
-allow_credentials = True
-if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true":
-    origins = ["*"]
-    allow_credentials = False
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=allow_credentials,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class DynamicCORSMiddleware(BaseHTTPMiddleware):
+    """
+    /api/v1/chat/* là endpoint công khai được Widget gọi từ domain của khách hàng
+    (không biết trước origin nào), nên phải chấp nhận mọi origin ở đó.
+    Các endpoint admin khác (auth/workspaces/users) chỉ chấp nhận origin trong ADMIN_ORIGINS
+    và có gửi cookie/credentials.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin")
+        is_public_chat = request.url.path.startswith("/api/v1/chat")
+
+        if request.method == "OPTIONS":
+            headers = {
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                "Access-Control-Allow-Headers": "*",
+            }
+            if is_public_chat and origin:
+                headers["Access-Control-Allow-Origin"] = origin
+            elif origin in ADMIN_ORIGINS:
+                headers["Access-Control-Allow-Origin"] = origin
+                headers["Access-Control-Allow-Credentials"] = "true"
+            return Response(status_code=200, headers=headers)
+
+        response = await call_next(request)
+        if is_public_chat and origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+        elif origin in ADMIN_ORIGINS:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+
+
+app.add_middleware(DynamicCORSMiddleware)
 
 # Đăng ký các router
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])

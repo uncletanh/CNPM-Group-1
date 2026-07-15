@@ -7,6 +7,7 @@ from app.api.v1 import chat as chat_api
 from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS
 from app.db.session import SessionLocal
 from app.main import app
+from app.models.chat import ChatSession, Message
 from app.models.workspace import Workspace
 
 
@@ -65,14 +66,24 @@ def run_chat_api_test() -> None:
         )
 
         client = TestClient(app)
+
+        # /chat yeu cau xac thuc: goi thieu widget_token phai bi tu choi 401.
+        unauthorized = client.post(
+            f"/api/v1/chat/{workspace.id}",
+            json={"message": "NovaChat có gói giá miễn phí không?", "top_k": 1},
+        )
+        assert unauthorized.status_code == 401, unauthorized.text
+
         response = client.post(
             f"/api/v1/chat/{workspace.id}",
             json={"message": "NovaChat có gói giá miễn phí không?", "top_k": 1},
+            headers={"X-Widget-Token": workspace.widget_token},
         )
 
         assert response.status_code == 200, response.text
         payload = response.json()
         assert payload["workspace_id"] == workspace.id
+        assert payload["session_key"]
         assert payload["context_chunks"] == 1
         assert payload["answer"] == "NovaChat có gói miễn phí cho workspace thử nghiệm."
         assert payload["sources"][0]["source_filename"] == "pricing.md"
@@ -80,26 +91,37 @@ def run_chat_api_test() -> None:
         print("[SUCCESS] Chat API RAG test passed.")
         print(json.dumps(payload, ensure_ascii=True))
 
-        stream_response = client.post(
+        with client.stream(
+            "POST",
             f"/api/v1/chat/{workspace.id}/stream",
             json={"message": "NovaChat có gói giá miễn phí không?", "top_k": 1},
-            headers={"Accept": "text/event-stream"},
-            stream=True,
-        )
-        assert stream_response.status_code == 200, stream_response.text
-        assert stream_response.headers["content-type"].startswith("text/event-stream")
+            headers={
+                "Accept": "text/event-stream",
+                "X-Widget-Token": workspace.widget_token,
+            },
+        ) as stream_response:
+            assert stream_response.status_code == 200, stream_response.text
+            assert stream_response.headers["content-type"].startswith("text/event-stream")
 
-        chunks = []
-        for raw_line in stream_response.iter_lines(decode_unicode=True):
-            if raw_line.startswith("data:"):
-                chunks.append(raw_line[len("data:"):].strip())
+            chunks = []
+            for raw_line in stream_response.iter_lines():
+                if raw_line.startswith("data:"):
+                    chunks.append(json.loads(raw_line[len("data:"):].strip()))
 
         assert "NovaChat có gói miễn phí cho workspace thử nghiệm." in chunks
-        assert "done" in chunks
+        assert any(
+            isinstance(chunk, dict) and chunk.get("context_chunks") == 1
+            for chunk in chunks
+        )
         print("[SUCCESS] Chat API streaming SSE test passed.")
     finally:
         if vector_store is not None:
             vector_store.delete_collection()
+        # Xoa cac phien chat + tin nhan da tao trong luc test (tranh de rac trong DB).
+        sessions = db.query(ChatSession).filter(ChatSession.workspace_id == workspace.id).all()
+        for session in sessions:
+            db.query(Message).filter(Message.session_id == session.id).delete()
+            db.delete(session)
         db.delete(workspace)
         db.commit()
         db.close()
