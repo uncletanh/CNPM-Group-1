@@ -118,7 +118,6 @@ function App() {
     const timer = window.setInterval(() => void pollOnce(), POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
   }, [config, isOpen, pollOnce]);
-
   useEffect(() => {
     if (!isOpen || !config) return;
     return connectRealtime(config, () => void pollOnce()) || undefined;
