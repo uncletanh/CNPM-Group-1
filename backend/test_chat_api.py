@@ -32,6 +32,10 @@ class FakeLLMProvider:
         assert "NovaChat có gói miễn phí" in user_prompt
         return "NovaChat có gói miễn phí cho workspace thử nghiệm."
 
+    def generate_stream(self, system_prompt: str, user_prompt: str):
+        assert "NovaChat có gói miễn phí" in user_prompt
+        yield "NovaChat có gói miễn phí cho workspace thử nghiệm."
+
 
 def run_chat_api_test() -> None:
     chat_api.get_embedding_model = lambda: FakeEmbeddings()
@@ -86,6 +90,30 @@ def run_chat_api_test() -> None:
         assert payload["sources"][0]["chunk_index"] == 0
         print("[SUCCESS] Chat API RAG test passed.")
         print(json.dumps(payload, ensure_ascii=True))
+
+        with client.stream(
+            "POST",
+            f"/api/v1/chat/{workspace.id}/stream",
+            json={"message": "NovaChat có gói giá miễn phí không?", "top_k": 1},
+            headers={
+                "Accept": "text/event-stream",
+                "X-Widget-Token": workspace.widget_token,
+            },
+        ) as stream_response:
+            assert stream_response.status_code == 200, stream_response.text
+            assert stream_response.headers["content-type"].startswith("text/event-stream")
+
+            chunks = []
+            for raw_line in stream_response.iter_lines():
+                if raw_line.startswith("data:"):
+                    chunks.append(json.loads(raw_line[len("data:"):].strip()))
+
+        assert "NovaChat có gói miễn phí cho workspace thử nghiệm." in chunks
+        assert any(
+            isinstance(chunk, dict) and chunk.get("context_chunks") == 1
+            for chunk in chunks
+        )
+        print("[SUCCESS] Chat API streaming SSE test passed.")
     finally:
         if vector_store is not None:
             vector_store.delete_collection()

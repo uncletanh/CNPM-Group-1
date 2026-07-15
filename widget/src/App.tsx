@@ -26,19 +26,22 @@ function App() {
   const [hasPartialAnswer, setHasPartialAnswer] = useState(false);
   const [sessionStatus, setSessionStatus] = useState("bot_handling");
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const configRef = useRef<WidgetConfig | null>(null);
-  const configErrorRef = useRef<string | null>(null);
+  const [{ config, configError }] = useState<{
+    config: WidgetConfig | null;
+    configError: string | null;
+  }>(() => {
+    try {
+      return { config: getWidgetConfig(), configError: null };
+    } catch (error) {
+      return {
+        config: null,
+        configError: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
   // Con tro: id tin nhan nhan vien lon nhat da hien thi, de poll chi lay cai moi hon.
   const lastAgentIdRef = useRef(0);
   const historyLoadedRef = useRef(false);
-
-  if (configRef.current === null && configErrorRef.current === null) {
-    try {
-      configRef.current = getWidgetConfig();
-    } catch (error) {
-      configErrorRef.current = error instanceof Error ? error.message : String(error);
-    }
-  }
 
   // Cuộn xuống cuối tin nhắn
   useEffect(() => {
@@ -47,9 +50,9 @@ function App() {
 
   // Mo lai trang co session_key cu -> tai lai toan bo lich su hoi thoai.
   useEffect(() => {
-    if (historyLoadedRef.current || !configRef.current) return;
+    if (historyLoadedRef.current || !config) return;
     historyLoadedRef.current = true;
-    void loadHistory(configRef.current).then((history) => {
+    void loadHistory(config).then((history) => {
       if (history.length === 0) return;
       setMessages([GREETING, ...history.map((m) => ({ id: m.id, text: m.content, sender: m.sender }))]);
       const maxAgentId = history
@@ -57,12 +60,12 @@ function App() {
         .reduce((max, m) => Math.max(max, m.id), 0);
       lastAgentIdRef.current = maxAgentId;
     });
-  }, []);
+  }, [config]);
 
   // Poll dinh ky: lay tin nhan moi cua nhan vien + trang thai phien (khi dang mo widget).
   const pollOnce = useCallback(async () => {
-    if (!configRef.current) return;
-    const result = await pollAgentMessages(configRef.current, lastAgentIdRef.current);
+    if (!config) return;
+    const result = await pollAgentMessages(config, lastAgentIdRef.current);
     if (!result) return;
     setSessionStatus(result.status);
     if (result.messages.length > 0) {
@@ -78,14 +81,14 @@ function App() {
         ...result.messages.map((m) => m.id)
       );
     }
-  }, []);
+  }, [config]);
 
   useEffect(() => {
-    if (!isOpen || !configRef.current) return;
+    if (!isOpen || !config) return;
     void pollOnce();
     const timer = window.setInterval(() => void pollOnce(), POLL_INTERVAL_MS);
     return () => window.clearInterval(timer);
-  }, [isOpen, pollOnce]);
+  }, [config, isOpen, pollOnce]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,10 +98,10 @@ function App() {
     setMessages((prev) => [...prev, newUserMsg]);
     setInputText("");
 
-    if (!configRef.current) {
+    if (!config) {
       setMessages((prev) => [
         ...prev,
-        { id: Date.now(), text: configErrorRef.current || "Widget chưa được cấu hình đúng.", sender: "bot" },
+        { id: Date.now(), text: configError || "Widget chưa được cấu hình đúng.", sender: "bot" },
       ]);
       return;
     }
@@ -108,7 +111,7 @@ function App() {
     const botMsgId = Date.now() + 1;
 
     try {
-      await streamChatMessage(configRef.current, newUserMsg.text, {
+      await streamChatMessage(config, newUserMsg.text, {
         onChunk: (chunk) => {
           setHasPartialAnswer(true);
           // Ham nay phai "pure" (chi phu thuoc prev) vi React StrictMode goi
