@@ -1,0 +1,9 @@
+[run]
+# Chi do do bao phu tren ma nguon san pham (thu muc app/), bo qua __init__ rong.
+source = app
+omit =
+    app/*/__init__.py
+
+[report]
+# Hien thi ca dong chua duoc test cham toi de biet cho nao can bo sung them test.
+show_missing = True

@@ -25,10 +25,19 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m compileall app
-      - run: python test_chat_api.py
-      - run: python test_knowledge_listing.py
-      - run: python test_phase4_chat.py
-      - run: python test_workspace_rbac.py
+      - name: Chay test + do code coverage (gate >= 70%)
+        run: |
+          coverage run -p test_chat_api.py
+          coverage run -p test_knowledge_listing.py
+          coverage run -p test_phase4_chat.py
+          coverage run -p test_workspace_rbac.py
+          coverage run -p test_auth_users.py
+          coverage run -p test_llm_provider.py
+          coverage run -p test_workspace_crud.py
+          coverage combine
+          coverage report --fail-under=70
+      - name: Quet lo hong bao mat (Bandit SAST)
+        run: bandit -r app --severity-level high
 
   frontend:
     runs-on: ubuntu-latest
