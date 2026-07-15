@@ -261,7 +261,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
       </div>
 
       {selectedWorkspace && (
-        <div className="grid grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(340px,0.85fr)]">
           <section className="rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -309,7 +309,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
                 <p className="mt-1 text-xs text-slate-500">Tải PDF hoặc TXT lên để bắt đầu xây dựng tri thức.</p>
               </div>
             ) : (
-              <div className="mt-5 divide-y divide-white/5 border-y border-white/5">
+              <div className="mt-5 max-h-[460px] divide-y divide-white/5 overflow-y-auto border-y border-white/5 pr-1">
                 {knowledgeSummary.documents.map((document) => (
                   <div key={document.filename} className="flex items-center gap-4 py-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
@@ -338,7 +338,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             )}
           </section>
 
-          <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md">
+          <div className="flex flex-col rounded-2xl border border-white/5 bg-slate-900/40 p-6 backdrop-blur-md xl:sticky xl:top-24">
             <h3 className="mb-4 flex items-center space-x-2 text-lg font-bold text-white">
               <FileText className="h-5 w-5 text-indigo-400" />
               <span>3. Nạp thêm tri thức</span>

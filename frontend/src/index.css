@@ -1,1 +1,140 @@
 @import "tailwindcss";
+
+:root {
+  color: #172033;
+  background: #f6f7f9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #f6f7f9;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.novachat-light .bg-slate-950,
+.novachat-light .bg-slate-900,
+.novachat-light .bg-slate-900\/60,
+.novachat-light .bg-slate-900\/50,
+.novachat-light .bg-slate-900\/40,
+.novachat-light .bg-slate-900\/30,
+.novachat-light .bg-slate-900\/10 {
+  background-color: #ffffff !important;
+}
+
+.novachat-light .bg-slate-950\/60,
+.novachat-light .bg-slate-950\/50,
+.novachat-light .bg-slate-800,
+.novachat-light .bg-slate-800\/80,
+.novachat-light .bg-slate-800\/40,
+.novachat-light .bg-white\/5 {
+  background-color: #f1f5f9 !important;
+}
+
+.novachat-light .text-white,
+.novachat-light .text-slate-100,
+.novachat-light .text-slate-200 {
+  color: #172033 !important;
+}
+
+.novachat-light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.novachat-light .text-slate-400 {
+  color: #475569 !important;
+}
+
+.novachat-light .text-indigo-300,
+.novachat-light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+.novachat-light .text-emerald-300,
+.novachat-light .text-emerald-400 {
+  color: #047857 !important;
+}
+
+.novachat-light .text-amber-100,
+.novachat-light .text-amber-300,
+.novachat-light .text-amber-400 {
+  color: #92400e !important;
+}
+
+.novachat-light .text-red-300,
+.novachat-light .text-red-400 {
+  color: #dc2626 !important;
+}
+
+.novachat-light .border-white\/5,
+.novachat-light .border-white\/10,
+.novachat-light .border-slate-900,
+.novachat-light .border-slate-800,
+.novachat-light .border-slate-700 {
+  border-color: #e2e8f0 !important;
+}
+
+.novachat-light .rounded-2xl,
+.novachat-light .rounded-xl {
+  border-radius: 0.5rem !important;
+}
+
+.novachat-light .shadow-xl,
+.novachat-light .shadow-lg,
+.novachat-light .shadow-md,
+.novachat-light .shadow-sm {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06) !important;
+}
+
+.novachat-light button.bg-indigo-600,
+.novachat-light button.bg-red-600,
+.novachat-light button[class*="from-indigo-"],
+.novachat-light .bg-indigo-600.text-white,
+.novachat-light .bg-red-600.text-white,
+.novachat-light [class*="from-indigo-"][class*="to-violet-"] {
+  color: #ffffff !important;
+}
+
+.novachat-light pre.bg-slate-950 {
+  background-color: #172033 !important;
+  color: #a7f3d0 !important;
+}
+
+.novachat-light input,
+.novachat-light textarea,
+.novachat-light select {
+  color: #172033;
+}
+
+.novachat-light select option {
+  background: #ffffff;
+  color: #172033;
+}
+
+.novachat-light .hover\:bg-slate-700:hover,
+.novachat-light .hover\:bg-slate-800\/40:hover,
+.novachat-light .hover\:bg-slate-900:hover,
+.novachat-light .hover\:bg-slate-900\/50:hover,
+.novachat-light .hover\:bg-slate-900\/60:hover {
+  background-color: #e2e8f0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
