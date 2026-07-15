@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime, timedelta
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
@@ -30,5 +31,45 @@ class Workspace(Base):
     # hoan toan widget_token vi Origin/Referer van co the bi gia mao boi client
     # khong phai trinh duyet (vd goi truc tiep bang script/cURL).
     allowed_origin = Column(String, nullable=True)
+    widget_primary_color = Column(String, nullable=False, default="#4f46e5")
+    bot_name = Column(String, nullable=False, default="NovaChat AI")
+    bot_greeting = Column(
+        String,
+        nullable=False,
+        default="Xin chào! Mình là NovaChat AI. Mình có thể giúp gì cho bạn?",
+    )
+    bot_avatar_url = Column(String, nullable=True)
+    widget_position = Column(String, nullable=False, default="right")
 
     owner = relationship("User", back_populates="workspaces")
+
+
+class WorkspaceMember(Base):
+    __tablename__ = "workspace_members"
+    __table_args__ = (UniqueConstraint("workspace_id", "user_id", name="uq_workspace_member"),)
+
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False, default="agent")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    workspace = relationship("Workspace")
+    user = relationship("User")
+
+
+class WorkspaceInvitation(Base):
+    __tablename__ = "workspace_invitations"
+
+    id = Column(Integer, primary_key=True)
+    workspace_id = Column(Integer, ForeignKey("workspaces.id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String, nullable=False, index=True)
+    role = Column(String, nullable=False, default="agent")
+    token = Column(String, nullable=False, unique=True, index=True, default=generate_widget_token)
+    status = Column(String, nullable=False, default="pending")
+    invited_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    expires_at = Column(DateTime, nullable=False, default=lambda: datetime.utcnow() + timedelta(days=7))
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    workspace = relationship("Workspace")
+    invited_by = relationship("User")

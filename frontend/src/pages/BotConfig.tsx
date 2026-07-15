@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import type { AxiosError } from "axios";
-import { Bot, Check, Copy, Globe, KeyRound, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, Check, Copy, Globe, KeyRound, Palette, ShieldCheck, Sparkles } from "lucide-react";
 import { toast } from "react-hot-toast";
 import api from "../services/api";
 
@@ -10,6 +10,11 @@ interface Workspace {
   system_prompt?: string;
   widget_token?: string;
   allowed_origin?: string | null;
+  widget_primary_color?: string;
+  bot_name?: string;
+  bot_greeting?: string;
+  bot_avatar_url?: string | null;
+  widget_position?: "left" | "right";
 }
 
 interface BotConfigProps {
@@ -45,6 +50,12 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [isSavingOrigin, setIsSavingOrigin] = useState(false);
   const [copied, setCopied] = useState<"token" | "embed" | null>(null);
+  const [primaryColor, setPrimaryColor] = useState(selectedWorkspace?.widget_primary_color || "#4f46e5");
+  const [botName, setBotName] = useState(selectedWorkspace?.bot_name || "NovaChat AI");
+  const [greeting, setGreeting] = useState(selectedWorkspace?.bot_greeting || "Xin chào! Mình có thể giúp gì cho bạn?");
+  const [avatarUrl, setAvatarUrl] = useState(selectedWorkspace?.bot_avatar_url || "");
+  const [widgetPosition, setWidgetPosition] = useState<"left" | "right">(selectedWorkspace?.widget_position || "right");
+  const [isSavingWidget, setIsSavingWidget] = useState(false);
 
   const handleWorkspaceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const nextId = e.target.value === "" ? "" : Number(e.target.value);
@@ -52,6 +63,11 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
     const workspace = nextId === "" ? undefined : workspaces.find((item) => item.id === nextId);
     setSystemPrompt(workspace?.system_prompt || (workspace ? DEFAULT_SYSTEM_PROMPT : ""));
     setAllowedOrigin(workspace?.allowed_origin || "");
+    setPrimaryColor(workspace?.widget_primary_color || "#4f46e5");
+    setBotName(workspace?.bot_name || "NovaChat AI");
+    setGreeting(workspace?.bot_greeting || "Xin chào! Mình có thể giúp gì cho bạn?");
+    setAvatarUrl(workspace?.bot_avatar_url || "");
+    setWidgetPosition(workspace?.widget_position || "right");
   };
 
   const handleSavePrompt = async () => {
@@ -96,6 +112,26 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
   const embedSnippet = selectedWorkspace
     ? `<script src="https://cdn.novachat.ai/script.umd.js"\n        data-workspace-id="${selectedWorkspace.id}"\n        data-widget-token="${selectedWorkspace.widget_token || ""}"\n        data-api-url="http://localhost:8000/api/v1"></script>`
     : "";
+
+  const saveWidgetSettings = async () => {
+    if (!selectedWorkspaceId) return;
+    setIsSavingWidget(true);
+    try {
+      await api.put(`/workspaces/${selectedWorkspaceId}/widget-settings`, {
+        primary_color: primaryColor,
+        bot_name: botName,
+        greeting,
+        avatar_url: avatarUrl.trim() || null,
+        position: widgetPosition,
+      });
+      await onWorkspacesChanged?.();
+      toast.success("Đã lưu giao diện Widget.");
+    } catch (error) {
+      toast.error(getApiErrorDetail(error) || "Không thể lưu giao diện Widget.");
+    } finally {
+      setIsSavingWidget(false);
+    }
+  };
 
   const copyToClipboard = async (text: string, kind: "token" | "embed") => {
     try {
@@ -237,6 +273,50 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
               </pre>
             </div>
           </div>
+
+          <section className="grid gap-6 rounded-lg border border-white/5 bg-slate-900/40 p-6 lg:col-span-2 lg:grid-cols-[1fr_360px]">
+            <div>
+              <h3 className="flex items-center gap-2 text-lg font-bold text-white"><Palette className="h-5 w-5 text-indigo-400" /> Tùy chỉnh Widget</h3>
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <label className="text-xs font-semibold text-slate-400">Tên bot
+                  <input value={botName} onChange={(event) => setBotName(event.target.value)} className="mt-2 w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500" />
+                </label>
+                <label className="text-xs font-semibold text-slate-400">Màu chủ đạo
+                  <div className="mt-2 flex gap-2">
+                    <input type="color" value={primaryColor} onChange={(event) => setPrimaryColor(event.target.value)} className="h-10 w-12 cursor-pointer rounded border-0 bg-transparent" />
+                    <input value={primaryColor} onChange={(event) => setPrimaryColor(event.target.value)} className="min-w-0 flex-1 rounded-md border border-white/10 bg-slate-950 px-3 py-2 text-sm text-white" />
+                  </div>
+                </label>
+                <label className="text-xs font-semibold text-slate-400 sm:col-span-2">Lời chào
+                  <textarea value={greeting} onChange={(event) => setGreeting(event.target.value)} className="mt-2 min-h-20 w-full resize-y rounded-md border border-white/10 bg-slate-950 p-3 text-sm text-white outline-none focus:border-indigo-500" />
+                </label>
+                <label className="text-xs font-semibold text-slate-400 sm:col-span-2">URL avatar
+                  <input value={avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://example.com/avatar.png" className="mt-2 w-full rounded-md border border-white/10 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-indigo-500" />
+                </label>
+                <div className="sm:col-span-2">
+                  <span className="text-xs font-semibold text-slate-400">Vị trí hiển thị</span>
+                  <div className="mt-2 inline-flex rounded-md border border-white/10 bg-slate-950 p-1">
+                    {(["left", "right"] as const).map((position) => (
+                      <button key={position} onClick={() => setWidgetPosition(position)} className={`rounded px-4 py-2 text-xs font-semibold ${widgetPosition === position ? "bg-indigo-600 text-white" : "text-slate-400"}`}>{position === "left" ? "Bên trái" : "Bên phải"}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => void saveWidgetSettings()} disabled={isSavingWidget} className="mt-5 rounded-md bg-indigo-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50">{isSavingWidget ? "Đang lưu..." : "Lưu giao diện Widget"}</button>
+            </div>
+
+            <div className="flex min-h-96 items-end bg-slate-100 p-4" style={{ justifyContent: widgetPosition === "left" ? "flex-start" : "flex-end" }}>
+              <div className="w-full max-w-xs overflow-hidden rounded-lg bg-white shadow-lg">
+                <div className="flex items-center gap-3 p-4 text-white" style={{ backgroundColor: primaryColor }}>
+                  {avatarUrl ? <img src={avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" /> : <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20"><Bot className="h-5 w-5" /></div>}
+                  <div><div className="text-sm font-bold">{botName || "Tên bot"}</div><div className="text-[10px] opacity-80">Trợ lý trực tuyến</div></div>
+                </div>
+                <div className="min-h-52 bg-slate-50 p-4">
+                  <div className="max-w-[85%] rounded-lg bg-white p-3 text-xs leading-5 text-slate-700 shadow-sm">{greeting || "Lời chào của bot"}</div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       )}
     </div>

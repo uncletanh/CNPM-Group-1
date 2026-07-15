@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { AxiosError } from "axios";
 import api from "../services/api";
 import { Mail, Lock, Eye, EyeOff, Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
@@ -21,6 +21,29 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const invitation = searchParams.get("invite");
+    if (invitation) sessionStorage.setItem("workspace_invitation", invitation);
+    const token = searchParams.get("token");
+    const googleEmail = searchParams.get("email");
+    if (!token) return;
+    localStorage.setItem("token", token);
+    if (googleEmail) localStorage.setItem("email", googleEmail);
+    const pendingInvitation = sessionStorage.getItem("workspace_invitation");
+    const acceptInvitation = pendingInvitation
+      ? api.post(`/workspaces/invitations/${pendingInvitation}/accept`)
+      : Promise.resolve();
+    void acceptInvitation.finally(() => {
+      sessionStorage.removeItem("workspace_invitation");
+      navigate("/dashboard", { replace: true });
+    });
+  }, [navigate, searchParams]);
+
+  const googleLoginUrl = `${
+    import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1"
+  }/auth/google/login`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +63,11 @@ const Login = () => {
         const response = await api.post("/auth/login", { email, password });
         localStorage.setItem("token", response.data.access_token);
         localStorage.setItem("email", email);
+        const pendingInvitation = sessionStorage.getItem("workspace_invitation");
+        if (pendingInvitation) {
+          await api.post(`/workspaces/invitations/${pendingInvitation}/accept`);
+          sessionStorage.removeItem("workspace_invitation");
+        }
         navigate("/dashboard");
       }
     } catch (err: unknown) {
@@ -193,6 +221,23 @@ const Login = () => {
                   </div>
                 </button>
               </form>
+
+              {!isRegister && (
+                <>
+                  <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
+                    <span className="h-px flex-1 bg-slate-200" />
+                    hoặc
+                    <span className="h-px flex-1 bg-slate-200" />
+                  </div>
+                  <a
+                    href={googleLoginUrl}
+                    className="flex w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center font-bold text-blue-600">G</span>
+                    Tiếp tục với Google
+                  </a>
+                </>
+              )}
 
               <div className="mt-8 text-center">
                 <button

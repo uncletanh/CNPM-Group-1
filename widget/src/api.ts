@@ -8,13 +8,37 @@ export interface ChatMessage {
 }
 
 export interface PollResult {
-  status: string; // 'bot_handling' | 'human_handling' | 'resolved'
+  status: string; // 'bot_handling' | 'waiting_human' | 'human_handling' | 'resolved'
   messages: ChatMessage[];
 }
 
 export interface StreamHandlers {
   onChunk: (text: string) => void;
   onHuman?: (text: string) => void;
+  onSession?: (sessionKey: string) => void;
+  onDone?: (result: StreamResult) => void;
+}
+
+export interface ChatSource {
+  source_filename: string | null;
+  chunk_index: number | null;
+  page: number | null;
+  distance: number | null;
+  preview: string;
+}
+
+export interface StreamResult {
+  context_chunks?: number;
+  sources?: ChatSource[];
+  status?: string;
+}
+
+export interface WidgetSettings {
+  primary_color: string;
+  bot_name: string;
+  greeting: string;
+  avatar_url: string | null;
+  position: "left" | "right";
 }
 
 // session_key duoc luu vao localStorage de cuoc hoi thoai song sot qua reload trang.
@@ -52,6 +76,14 @@ function authHeaders(config: WidgetConfig): Record<string, string> {
     "Content-Type": "application/json",
     "X-Widget-Token": config.widgetToken,
   };
+}
+
+export async function loadWidgetSettings(config: WidgetConfig): Promise<WidgetSettings> {
+  const response = await fetch(`${config.apiUrl}/chat/${config.workspaceId}/widget-config`, {
+    headers: authHeaders(config),
+  });
+  if (!response.ok) throw new Error("Không thể tải cấu hình widget.");
+  return response.json();
 }
 
 // Doc SSE tho tu response.body (khong dung EventSource vi no chi ho tro GET,
@@ -98,11 +130,14 @@ export async function streamChatMessage(
         const data = JSON.parse(dataLine);
         if (eventType === "session") {
           setSessionKey(data);
+          handlers.onSession?.(data);
         } else if (eventType === "chunk") {
           handlers.onChunk(data);
         } else if (eventType === "human") {
           // Nhan vien da tiep quan: bot khong tra loi, khach cho phan hoi qua poll.
           handlers.onHuman?.(data);
+        } else if (eventType === "done") {
+          handlers.onDone?.(data);
         } else if (eventType === "error") {
           await reader.cancel();
           throw new Error(data);
@@ -112,6 +147,37 @@ export async function streamChatMessage(
       boundary = buffer.indexOf("\n\n");
     }
   }
+}
+
+export async function requestHumanSupport(config: WidgetConfig): Promise<string> {
+  const response = await fetch(`${config.apiUrl}/chat/${config.workspaceId}/request-human`, {
+    method: "POST",
+    headers: authHeaders(config),
+    body: JSON.stringify({ session_key: sessionKey }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail || "Không thể kết nối với nhân viên hỗ trợ.");
+  }
+  const session = await response.json();
+  setSessionKey(session.session_key);
+  return session.session_key;
+}
+
+export function connectRealtime(
+  config: WidgetConfig,
+  onEvent: () => void
+): (() => void) | null {
+  if (!sessionKey) return null;
+  const wsBase = config.apiUrl.replace(/^http/, "ws");
+  const params = new URLSearchParams({
+    role: "widget",
+    widget_token: config.widgetToken,
+    session_key: sessionKey,
+  });
+  const socket = new WebSocket(`${wsBase}/chat/${config.workspaceId}/ws?${params}`);
+  socket.onmessage = onEvent;
+  return () => socket.close();
 }
 
 // Tai toan bo lich su hoi thoai (dung khi mo lai trang co session_key cu).
