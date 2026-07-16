@@ -86,6 +86,11 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 .\venv\Scripts\python.exe test_knowledge_listing.py
 .\venv\Scripts\python.exe test_phase4_chat.py
 .\venv\Scripts\python.exe test_workspace_rbac.py
+.\venv\Scripts\python.exe test_auth_users.py
+.\venv\Scripts\python.exe test_llm_provider.py
+.\venv\Scripts\python.exe test_workspace_crud.py
 ```
 
 `test_chroma.py` là smoke test Chroma/embedding riêng và có thể tải model lần đầu.
+
+Trong CI, bảy script chính được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70%. Bandit cũng quét thư mục `app` với ngưỡng severity `high`.

@@ -64,6 +64,6 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 
 - `render.yaml`: backend Python và dashboard static mẫu.
 - `docker-compose.yml`: backend, Redis và dashboard local; Ollama chạy trên host qua `host.docker.internal`.
-- `.github/workflows/ci.yml`: Python 3.11, Node 22, backend tests, frontend/widget lint và build.
+- `.github/workflows/ci.yml`: Python 3.11, Node 22, backend coverage gate 70%, Bandit SAST mức `high`, frontend/widget lint và build.
 
 Các file này là nền tảng triển khai, chưa thay thế cấu hình secrets, persistent storage, domain, monitoring và backup của môi trường thật.

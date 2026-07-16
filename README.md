@@ -17,7 +17,7 @@ Các luồng chính đã có trong code:
 - Omnibox cho Agent xem lịch sử, tiếp quản, trả lời và đóng hội thoại.
 - Redis Distributed Lock và Pub/Sub khi có Redis; local có fallback trong một process.
 - Dashboard có Tổng quan, Không gian làm việc, Cấu hình Bot AI, Quản lý Tri thức, Hộp thoại, Thống kê và Cài đặt tài khoản.
-- GitHub Actions kiểm tra backend, frontend và widget; backend có `/health`, `/metrics`, logging JSON và rate limiting cơ bản.
+- GitHub Actions kiểm tra backend, frontend và widget; backend có coverage gate 70% và quét Bandit SAST mức `high`.
 
 Chi tiết và các phần còn thiếu được duy trì tại [Trạng thái triển khai](reengineered_docs/12_Implementation_Status.md).
 
@@ -116,6 +116,9 @@ cd backend
 .\venv\Scripts\python.exe test_knowledge_listing.py
 .\venv\Scripts\python.exe test_phase4_chat.py
 .\venv\Scripts\python.exe test_workspace_rbac.py
+.\venv\Scripts\python.exe test_auth_users.py
+.\venv\Scripts\python.exe test_llm_provider.py
+.\venv\Scripts\python.exe test_workspace_crud.py
 ```
 
 ```powershell
@@ -130,7 +133,7 @@ npm.cmd run lint
 npm.cmd run build
 ```
 
-GitHub Actions chạy cùng các kiểm tra này trên mọi push vào `main`, `feature/**` và Pull Request vào `main`.
+GitHub Actions chạy các test backend bằng `coverage`, yêu cầu tổng coverage tối thiểu 70%, quét `bandit -r app --severity-level high`, và kiểm tra lint/build cho frontend lẫn widget. Workflow chạy trên mọi push vào `main`, `feature/**` và Pull Request vào `main`.
 
 ## Cấu trúc tài liệu
 

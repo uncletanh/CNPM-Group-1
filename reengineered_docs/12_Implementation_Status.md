@@ -1,6 +1,6 @@
 # 12. Trạng thái triển khai NovaChat AI
 
-Ngày cập nhật: **15/07/2026**. Đây là nguồn trạng thái chuẩn của bộ tài liệu.
+Ngày cập nhật: **16/07/2026**. Đây là nguồn trạng thái chuẩn của bộ tài liệu.
 
 ## Tổng quan
 
@@ -63,7 +63,8 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - Docker Compose cho backend/Redis/dashboard.
 - Render blueprint cho backend/dashboard.
 - GitHub Actions: Python 3.11 và Node 22.
-- Automated scripts cho Chat/SSE, Knowledge listing, Phase 4 handoff/RAG và workspace RBAC.
+- Bảy nhóm test backend cho Chat/SSE, Knowledge Base, Phase 4 handoff/RAG, workspace/RBAC, auth/user, LLM provider và workspace CRUD.
+- Coverage gate tổng tối thiểu 70% và Bandit SAST chặn lỗi severity `high`.
 
 ## Cần cấu hình khi triển khai
 
@@ -122,6 +123,12 @@ python test_chat_api.py
 python test_knowledge_listing.py
 python test_phase4_chat.py
 python test_workspace_rbac.py
+python test_auth_users.py
+python test_llm_provider.py
+python test_workspace_crud.py
+coverage combine
+coverage report --fail-under=70
+bandit -r app --severity-level high
 npm ci && npm run lint && npm run build  # frontend và widget
 ```
 
