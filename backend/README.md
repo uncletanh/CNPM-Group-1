@@ -19,8 +19,12 @@ Các biến quan trọng:
 |---|---|
 | `DATABASE_URL` | SQLite local hoặc PostgreSQL staging/production |
 | `SECRET_KEY` | Ký JWT và session OAuth; phải thay ở production |
+| `LLM_PROVIDER` | `ollama`, `groq`, `gemini` hoặc `auto` |
+| `LLM_FALLBACK_ORDER` | Thứ tự provider khi dùng `auto`, mặc định `ollama,groq,gemini` |
 | `OLLAMA_BASE_URL` | Mặc định `http://localhost:11434` |
 | `OLLAMA_MODEL` | Mặc định `qwen2.5:3b` |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Bật Groq cloud, mặc định `llama-3.1-8b-instant` |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Bật Gemini cloud, mặc định `gemini-2.0-flash` |
 | `REDIS_URL` | Lock takeover và Pub/Sub nhiều instance; để trống khi chạy local một instance |
 | `RAG_MAX_DISTANCE` | Ngưỡng khoảng cách Chroma, mặc định `1.2` |
 | `CHAT_HISTORY_LIMIT` | Số tin nhắn gần nhất đưa vào prompt, mặc định `10` |
@@ -71,7 +75,7 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 
 ## Realtime và Handoff
 
-- SSE stream token từ Ollama cho widget.
+- SSE stream token từ Ollama/Groq/Gemini cho widget.
 - WebSocket truyền sự kiện tới Agent và widget.
 - Redis Pub/Sub đồng bộ nhiều backend instance.
 - Redis lock và cập nhật SQL có điều kiện chống hai Agent tiếp quản cùng lúc.

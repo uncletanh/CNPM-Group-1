@@ -68,7 +68,7 @@ graph TD
     C -->|SQL| D[(PostgreSQL / Neon)]
     C -->|Top-K Similarity + filter workspace_id| E[(ChromaDB)]
     C -->|Lock & Pub/Sub| F[(Redis)]
-    C -->|Prompt + Context| G[Ollama LLM qwen2.5:3b]
+    C -->|Prompt + Context| G[Ollama / Groq / Gemini]
 ```
 
 ### 2.3 Data model & lựa chọn CSDL
@@ -92,27 +92,30 @@ graph TD
 ## 3. Chu trình DevOps & Tự động hóa (25%)
 
 ### 3.1 CI/CD Pipeline (GitHub Actions — `.github/workflows/ci.yml`)
-- **Job backend:** `compileall` + 4 test script (chat API, knowledge listing, Phase 4 chat, RBAC).
+- **Job backend:** `compileall` → chạy 7 test script dưới `coverage` → **cổng chặn `coverage report --fail-under=70`** → bước **SAST `bandit -r app --severity-level high`**.
 - **Job frontend/widget (matrix):** `npm ci` + `lint` + `build`.
-- Chạy trên push nhánh `main`/`feature/**` và mọi PR vào `main`.
+- Chạy trên push nhánh `main`/`feature/**` và mọi PR vào `main`. Pipeline **xanh** trên cloud (run #9).
 
-### 3.2 Kiểm thử tự động
-- 5 test script backend (`test_*.py`), phủ: happy path, input rỗng, truy cập trái phép, streaming + citation.
-- **Đang bổ sung (tuần 10):** đo `pytest --cov` để có chỉ số coverage và thêm bước SAST (`bandit`).
+### 3.2 Kiểm thử tự động & Bảo mật (SAST)
+- **7 test script backend trong CI**: auth (register/login/RBAC), chat RAG + streaming + citation,
+  knowledge base, workspace CRUD, RBAC cách ly, và cả 3 LLM provider (Ollama/Groq/Gemini).
+- **Code Coverage = 73%** (đạt ngưỡng rubric > 70%), có cổng chặn merge nếu tụt dưới 70%.
+- **SAST bằng Bandit**: 0 lỗi mức High. Cấu hình chỉ fail ở mức nghiêm trọng để pipeline không "đỏ oan".
 
 ### 3.3 Hạ tầng Cloud & vận hành
 - Blueprint `render.yaml` (backend + frontend) + `DEPLOYMENT.md` (staging/production).
 - Observability: logging JSON, `/health`, `/metrics` (Prometheus), rate limiting.
-- **Ghi chú trung thực về demo cloud:** AI feature dùng **Ollama local**, không chạy được
-  trên free tier của Render. Phương án demo online: dựng 1 VPS chạy Ollama và trỏ
-  `OLLAMA_BASE_URL`, hoặc thêm fallback provider cloud (Groq/Gemini). Đây là việc cần chốt
-  trước buổi bảo vệ (mục 6).
+- **LLM linh hoạt để demo cloud:** hệ thống hỗ trợ 3 provider chọn qua biến `LLM_PROVIDER`:
+  **Ollama** (local, mặc định — miễn phí, dữ liệu không rời máy) và hai fallback cloud
+  **Groq** / **Gemini** (dùng khi deploy vì Ollama không chạy trên free tier Render).
+  Cả ba dùng chung interface `generate()/generate_stream()` nên đổi provider **không phải sửa pipeline RAG**;
+  API key đọc từ biến môi trường, **không commit vào repo**.
 
 ---
 
 ## 4. Khai thác & Tương tác với AI Agent (15%)
 
-- **Agent chính:** Claude Code. **Dự phòng:** Cline / Gemini CLI. **LLM trong sản phẩm:** Ollama local.
+- **Agent chính:** Claude Code. **Dự phòng:** Cline / Gemini CLI. **LLM trong sản phẩm:** Ollama local (mặc định), có fallback cloud Groq/Gemini cho môi trường deploy.
 - **Nhật ký chi tiết 10 tuần:** thư mục `ai-logs/week-01.md … week-10.md`.
 - **2 prompt hiệu quả nhất:** xem `PROMPTS.md` (chống race condition handoff; guardrail RAG + cách ly dữ liệu).
 - **AI agent đã giúp ngoài viết code:** phân tích sản phẩm, sinh backlog & GitHub Issue, thiết kế
@@ -140,10 +143,13 @@ graph TD
    nhỏ đôi lúc diễn đạt lủng củng.
 7. **Phát hiện lỗi bằng cách nào?** Đọc diff trong PR, chạy test tay, chạy CI, test cách ly 2 workspace.
 8. **Có đọc diff không?** Có — mọi PR đều qua review của Lead trước khi merge.
-9. **Test nào chứng minh chạy đúng?** `test_phase4_chat.py` (streaming + citation), `test_workspace_rbac.py`
-   (chặn truy cập trái phép), `test_chat_api.py`, `test_knowledge_listing.py`.
+9. **Test nào chứng minh chạy đúng?** 7 test script CI, ví dụ `test_phase4_chat.py` (streaming + citation),
+   `test_workspace_rbac.py` (chặn truy cập trái phép), `test_auth_users.py` (đăng nhập/RBAC),
+   `test_llm_provider.py` (Ollama/Groq/Gemini/fallback). Coverage 73%, CI xanh trên cloud.
 10. **Dữ liệu nào gửi vào AI model?** System prompt của workspace + chunk truy hồi (đúng workspace) +
-    tối đa 10 tin nhắn gần nhất + câu hỏi. Không gửi mật khẩu/dữ liệu workspace khác; model chạy local.
+    tối đa 10 tin nhắn gần nhất + câu hỏi. Không gửi mật khẩu/dữ liệu workspace khác. **Đánh đổi có ý thức:**
+    khi dùng Ollama (local) dữ liệu không rời hạ tầng nhóm; khi dùng fallback cloud (Groq/Gemini) để demo,
+    dữ liệu câu hỏi + đoạn tài liệu được gửi tới dịch vụ ngoài — đổi provider chỉ bằng một biến môi trường.
 11. **Người dùng kiểm soát output AI?** Có — kết quả được đánh dấu AI-generated, hiển thị nguồn, và
     khách có thể yêu cầu "Gặp nhân viên"; nhân viên có thể tiếp quản/ghi đè.
 12. **Bỏ AI feature còn giá trị không?** Còn — vẫn là nền tảng quản lý hội thoại + CSKH bởi người
@@ -151,10 +157,12 @@ graph TD
 
 ---
 
-## 6. Việc còn phải hoàn tất trước buổi bảo vệ (trung thực)
-- [ ] **Deploy cloud chạy được thật** cho AI feature (VPS Ollama hoặc fallback provider cloud) — **ưu tiên #1**.
-- [ ] Đo **code coverage** (`pytest --cov`) + thêm **SAST (bandit)** vào CI để có số liệu cho rubric.
-- [ ] Đồng bộ slide với code thật (Ollama/SSE, Modular Monolith) và luyện vấn đáp cá nhân.
+## 6. Trạng thái hoàn thiện trước buổi bảo vệ
+- [x] **Code coverage 73%** (cổng chặn `--fail-under=70`) + **SAST Bandit** trong CI — pipeline xanh trên cloud.
+- [x] **Fallback LLM cloud (Groq/Gemini)** đã có trong code, chọn qua `LLM_PROVIDER` — gỡ rào cản demo online.
+- [ ] **Việc còn lại (ưu tiên #1):** thực sự deploy backend lên Render với `LLM_PROVIDER=groq` + điền `GROQ_API_KEY`,
+  deploy frontend lên Vercel, và lấy **link live** để demo trực tiếp trên hội đồng.
+- [ ] Đồng bộ slide với code thật (Ollama/Groq/SSE, Modular Monolith) và luyện vấn đáp cá nhân.
 
 ---
 
@@ -162,7 +170,7 @@ graph TD
 | Vai trò | Thành viên | Đóng góp chính |
 |---|---|---|
 | Lead / System Architect | Nguyễn Tiến Anh | Boilerplate, kiến trúc, CI/CD, deploy, Redis lock, review PR |
-| Backend & AI (Pair 1) | Lê Xuân Hiệp, Đào Minh Hiếu | Auth/Workspace API, RAG ingestion, LLM Ollama, streaming SSE, guardrail |
+| Backend & AI (Pair 1) | Lê Xuân Hiệp, Đào Minh Hiếu | Auth/Workspace API, RAG ingestion, LLM (Ollama + Groq/Gemini), streaming SSE, guardrail, test/coverage |
 | Frontend & UI/UX (Pair 2) | Vũ Công Minh Thái, Trương Gia Bình | Login/Dashboard, Knowledge Base UI, Omnibox, Widget, Color Picker |
 
 *Chi tiết quy trình làm việc với AI agent theo từng tuần: xem thư mục `ai-logs/`.*

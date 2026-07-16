@@ -1,8 +1,8 @@
 # NovaChat AI
 
-NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Hệ thống kết hợp kho tri thức riêng theo workspace, mô hình Ollama chạy local, widget nhúng website và quy trình Human Handoff để nhân viên tiếp quản hội thoại khi AI không đủ độ tin cậy.
+NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Hệ thống kết hợp kho tri thức riêng theo workspace, LLM local/cloud, widget nhúng website và quy trình Human Handoff để nhân viên tiếp quản hội thoại khi AI không đủ độ tin cậy.
 
-Ngày đồng bộ tài liệu: **15/07/2026**.
+Ngày đồng bộ tài liệu: **16/07/2026**.
 
 ## Trạng thái hiện tại
 
@@ -12,7 +12,7 @@ Các luồng chính đã có trong code:
 - Workspace đa tenant, thành viên `admin`/`agent` và lời mời bằng liên kết.
 - Knowledge Base cho PDF, TXT, DOCX và nội dung nhập trực tiếp; có danh sách, preview, sửa text, xóa và thay thế tài liệu trùng tên.
 - RAG dùng `all-MiniLM-L6-v2`, ChromaDB, Top-K, ngưỡng khoảng cách, lọc prompt injection và 10 tin nhắn gần nhất.
-- Ollama `qwen2.5:3b` trả lời thường hoặc streaming qua SSE.
+- Ollama, Groq hoặc Gemini trả lời thường/streaming; chế độ `auto` fallback theo provider đã cấu hình.
 - Widget lưu session trong LocalStorage, hiển thị nguồn, gọi nhân viên, nhận cập nhật qua WebSocket và fallback polling.
 - Omnibox cho Agent xem lịch sử, tiếp quản, trả lời và đóng hội thoại.
 - Redis Distributed Lock và Pub/Sub khi có Redis; local có fallback trong một process.
@@ -31,14 +31,14 @@ Chi tiết và các phần còn thiếu được duy trì tại [Trạng thái t
 | CSDL quan hệ | SQLite khi phát triển; PostgreSQL cho staging/production |
 | Vector store | ChromaDB persistent, collection riêng theo workspace |
 | Embedding | Hugging Face `all-MiniLM-L6-v2` |
-| LLM | Ollama, mặc định `qwen2.5:3b` |
+| LLM | Ollama `qwen2.5:3b`, Groq, Gemini và fallback tự động |
 | Realtime | SSE cho token AI; WebSocket + Redis Pub/Sub cho sự kiện hội thoại |
 
 ## Yêu cầu
 
 - Python `3.11` hoặc `3.12`.
 - Node.js `22` để khớp GitHub Actions.
-- Ollama và model `qwen2.5:3b`.
+- Ollama và model `qwen2.5:3b`, hoặc API key Groq/Gemini.
 - Redis nếu cần kiểm thử nhiều backend instance; có thể bỏ trống `REDIS_URL` khi phát triển một instance.
 - PostgreSQL cho môi trường triển khai thật.
 
@@ -52,6 +52,8 @@ ollama serve
 ```
 
 Ollama mặc định chạy tại `http://localhost:11434`. Có thể đặt dữ liệu model ở ổ D bằng biến môi trường `OLLAMA_MODELS` trước khi tải model.
+
+Không muốn chạy Ollama trên cloud, đặt `LLM_PROVIDER=groq`/`gemini` và khai báo API key tương ứng. `LLM_PROVIDER=auto` sẽ thử thứ tự trong `LLM_FALLBACK_ORDER`.
 
 ### 2. Backend
 

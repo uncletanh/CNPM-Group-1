@@ -1,6 +1,6 @@
 # 11. Phân công công việc và trạng thái thực hiện
 
-Ngày cập nhật: **15/07/2026**.
+Ngày cập nhật: **16/07/2026**.
 
 ## Cơ cấu đội dự án
 
@@ -35,14 +35,14 @@ Ngày cập nhật: **15/07/2026**.
 
 | Hạng mục | Trạng thái |
 |---|---|
-| RAG API và Ollama | Hoàn tất |
+| RAG API và Ollama/Groq/Gemini fallback | Hoàn tất |
 | POST SSE streaming | Hoàn tất |
 | Chat history và LocalStorage session | Hoàn tất |
 | Widget Vite Library Mode | Hoàn tất |
 | Widget token/origin check | Hoàn tất MVP |
 | Source citations | Hoàn tất |
 
-Lưu ý: code hiện dùng Ollama, không gọi OpenAI/Gemini.
+Lưu ý: Ollama vẫn là mặc định; Groq/Gemini chỉ được gọi khi chọn provider và có API key.
 
 ### Phase 4: Human Handoff và Guardrails
 
@@ -74,7 +74,7 @@ Lưu ý: code hiện dùng Ollama, không gọi OpenAI/Gemini.
 
 ### Lead
 
-- Chuẩn hóa staging architecture cho PostgreSQL, Redis, Ollama và persistent Chroma.
+- Chuẩn hóa staging architecture cho PostgreSQL, Redis, LLM provider và persistent Chroma.
 - Định nghĩa security checklist, secrets, backup/restore và monitoring.
 - Review Alembic migration strategy và loại bỏ dần schema mutation khi startup.
 

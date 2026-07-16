@@ -1,6 +1,6 @@
 # Triển khai NovaChat AI
 
-Ngày cập nhật: **15/07/2026**.
+Ngày cập nhật: **16/07/2026**.
 
 ## Thành phần cần triển khai
 
@@ -9,7 +9,7 @@ Ngày cập nhật: **15/07/2026**.
 3. Widget UMD/CSS trên CDN hoặc static hosting.
 4. PostgreSQL.
 5. Redis cho môi trường nhiều backend instance.
-6. Ollama trên máy có đủ RAM/CPU và ổ đĩa cho model.
+6. Ollama trên máy đủ tài nguyên, hoặc Groq/Gemini bằng API key.
 7. Persistent volume cho `backend/chroma_data` hoặc một chiến lược Chroma server riêng.
 
 ## Biến môi trường backend
@@ -21,8 +21,10 @@ Sao chép `backend/.env.example` và thay toàn bộ giá trị production.
 | `DATABASE_URL` | Có | PostgreSQL; không dùng SQLite production |
 | `SECRET_KEY` | Có | Chuỗi ngẫu nhiên dài, không commit |
 | `FRONTEND_URL` | Có | Origin dashboard và OAuth redirect |
-| `OLLAMA_BASE_URL` | Có | URL nội bộ tới Ollama |
-| `OLLAMA_MODEL` | Có | Mặc định `qwen2.5:3b` |
+| `LLM_PROVIDER` | Có | `ollama`, `groq`, `gemini` hoặc `auto` |
+| `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Nếu dùng Ollama | URL nội bộ và model local |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Nếu dùng Groq | Không commit API key |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Nếu dùng Gemini | Không commit API key |
 | `REDIS_URL` | Khi scale | Bắt buộc khi có nhiều backend instance |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Nếu dùng SSO | Callback là `/api/v1/auth/google/callback` |
 | `RAG_MAX_DISTANCE` | Nên đặt | Mặc định `1.2`, cần hiệu chỉnh bằng dữ liệu thật |
@@ -51,8 +53,8 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 
 ## Production
 
-- Đặt Ollama trong mạng riêng; không công khai cổng `11434`.
-- Không đặt Ollama lên Render free web service. Cần VM hoặc máy riêng có persistent disk và đủ tài nguyên.
+- Nếu dùng Ollama, đặt trong mạng riêng và không công khai cổng `11434`.
+- Render free không phù hợp chạy Ollama; dùng `LLM_PROVIDER=groq`/`gemini` hoặc một VM Ollama riêng. Dùng cloud provider đồng nghĩa prompt và context RAG được gửi ra dịch vụ ngoài.
 - Gắn persistent disk cho ChromaDB. Nếu backend chạy nhiều instance, Chroma local filesystem không tự đồng bộ giữa các instance; cần shared architecture hoặc Chroma server trước khi scale ngang.
 - Redis dùng cho Pub/Sub và distributed lock; Redis down sẽ rơi về lock trong process và không còn đảm bảo cross-instance.
 - Rate limiter hiện là in-memory, chưa phải global distributed rate limit.

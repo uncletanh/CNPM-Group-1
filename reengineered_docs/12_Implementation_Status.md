@@ -29,11 +29,11 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 ### RAG và chat
 
 - Chat response thường và POST SSE streaming.
-- Ollama provider, mặc định `qwen2.5:3b`.
+- Ollama, Groq và Gemini provider; hỗ trợ chọn trực tiếp hoặc fallback `auto`.
 - Top-K 1–5, `RAG_MAX_DISTANCE=1.2` mặc định.
 - Lọc một số mẫu prompt injection ở question/chunk.
 - Tối đa 10 tin nhắn gần nhất trong conversation context.
-- Không đủ context sẽ không gọi Ollama và chuyển sang handoff.
+- Không đủ context sẽ không gọi LLM và chuyển sang handoff.
 - API/SSE trả sources: filename, chunk, page, distance, preview.
 - Message/session được lưu SQL; widget khôi phục history bằng LocalStorage session key.
 
@@ -71,7 +71,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - `GOOGLE_CLIENT_ID` và `GOOGLE_CLIENT_SECRET` cho Google SSO.
 - `FRONTEND_URL` khớp domain dashboard/OAuth.
 - `REDIS_URL` khi chạy nhiều backend instance.
-- Ollama server và model đã tải.
+- Ollama server/model hoặc API key Groq/Gemini tùy provider triển khai.
 - PostgreSQL production và persistent storage cho Chroma.
 - `VITE_API_URL` tại build time của dashboard.
 - HTTPS/reverse proxy hỗ trợ SSE và WebSocket.
@@ -113,7 +113,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - Browser Notification không chạy khi dashboard đã đóng.
 - Rate limit hiện không dùng chung giữa backend instances.
 - `/health` là liveness đơn giản, chưa kiểm tra dependency sâu.
-- `render.yaml` là blueprint mẫu; Ollama và Chroma persistence cần hạ tầng riêng.
+- `render.yaml` là blueprint mẫu; Chroma persistence cần hạ tầng riêng, còn Ollama cần VM nếu không dùng Groq/Gemini.
 
 ## Kiểm tra đã có trong CI
 

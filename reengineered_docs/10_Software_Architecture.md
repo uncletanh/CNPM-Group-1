@@ -1,6 +1,6 @@
 # 10. Kiến trúc phần mềm NovaChat AI
 
-Ngày cập nhật: **15/07/2026**. Tài liệu này mô tả code đã merge vào `main`, không phải kiến trúc giả định.
+Ngày cập nhật: **16/07/2026**. Tài liệu này mô tả code hiện tại, không phải kiến trúc giả định.
 
 ## 1. Phong cách kiến trúc
 
@@ -12,9 +12,9 @@ NovaChat AI là **modular monolith**:
 - PostgreSQL/SQLite lưu dữ liệu quan hệ.
 - ChromaDB persistent lưu vector theo workspace.
 - Redis tùy chọn cho distributed lock và Pub/Sub.
-- Ollama là LLM provider duy nhất hiện được hỗ trợ.
+- Ollama local cùng Groq/Gemini cloud dùng chung interface và hỗ trợ fallback.
 
-Thiết kế này phù hợp MVP. Repo không dùng Next.js, Preact, Celery, S3/R2, OpenAI hoặc Gemini ở thời điểm hiện tại.
+Thiết kế này phù hợp MVP. Repo không dùng Next.js, Preact, Celery, S3/R2 hoặc OpenAI ở thời điểm hiện tại.
 
 ## 2. Sơ đồ container
 
@@ -29,6 +29,7 @@ flowchart LR
     API --> SQL[("SQLite local / PostgreSQL")]
     API --> Chroma[("ChromaDB persistent")]
     API --> Ollama["Ollama qwen2.5:3b"]
+    API --> CloudLLM["Groq / Gemini"]
     API <--> Redis[("Redis lock + Pub/Sub")]
 ```
 
@@ -46,7 +47,7 @@ backend/app/
 ├── db/chroma.py                # persistent Chroma client
 ├── models/                     # User, Workspace, Session, Message
 ├── schemas/                    # Pydantic contracts
-├── services/llm.py             # Ollama provider
+├── services/llm.py             # Ollama/Groq/Gemini + fallback
 ├── services/realtime.py        # WebSocket, Redis Pub/Sub/lock
 └── services/observability.py   # JSON log, metrics, rate limit
 
@@ -123,12 +124,12 @@ Ingestion hiện đồng bộ trong HTTP request. Chưa có OCR, object storage,
 3. Kiểm tra một số regex prompt injection.
 4. Query Chroma Top-K (`ChatRequest.top_k` từ 1 đến 5).
 5. Loại chunk rỗng, chứa mẫu injection hoặc distance lớn hơn `RAG_MAX_DISTANCE`.
-6. Nếu không còn context, chuyển `waiting_human`, báo Agent và không gọi Ollama.
+6. Nếu không còn context, chuyển `waiting_human`, báo Agent và không gọi LLM.
 7. Nếu có context, thêm tối đa `CHAT_HISTORY_LIMIT=10` message trước đó vào prompt.
-8. Gọi Ollama `/api/chat`, thường hoặc streaming.
+8. Gọi provider đã chọn, thường hoặc streaming; fallback chỉ đổi provider trước chunk đầu tiên.
 9. Lưu answer và trả sources.
 
-Embedding dùng `all-MiniLM-L6-v2`; generation mặc định dùng Ollama `qwen2.5:3b`. `LLM_PROVIDER` khác `ollama` trả lỗi.
+Embedding dùng `all-MiniLM-L6-v2`; generation hỗ trợ `ollama`, `groq`, `gemini` và `auto`. Chế độ `auto` mặc định thử `ollama,groq,gemini`, bỏ qua cloud provider chưa có API key.
 
 ## 7. API và realtime
 
@@ -186,7 +187,7 @@ Origin check là defense-in-depth, không chứng minh danh tính client ngoài 
 
 - Log HTTP ở JSON trên stdout.
 - Prometheus counter/histogram tại `/metrics`.
-- `/health` kiểm tra process sống, chưa kiểm tra sâu PostgreSQL/Redis/Ollama/Chroma.
+- `/health` kiểm tra process sống, chưa kiểm tra sâu PostgreSQL/Redis/LLM/Chroma.
 - POST `/api/v1/chat/*` bị rate limit theo IP + path, mặc định 30 request/phút.
 
 Limiter hiện in-memory, không đồng bộ giữa các instance. `/metrics` chưa có auth trong app.
@@ -204,7 +205,7 @@ Mọi schema change tiếp theo nên có migration Alembic riêng và test upgra
 
 GitHub Actions:
 
-- Python 3.11: install, compile và 4 integration scripts.
+- Python 3.11: install, compile, 7 test scripts, coverage gate 70% và Bandit SAST.
 - Node 22: `npm ci`, lint, build cho dashboard và widget.
 
 Deployment artifacts:
@@ -213,7 +214,7 @@ Deployment artifacts:
 - `docker-compose.yml`: backend + Redis + dashboard local.
 - Widget build: `dist/script.umd.cjs` và `dist/script.css`.
 
-Ollama và persistent Chroma storage phải được cung cấp ngoài Render blueprint mẫu.
+Persistent Chroma storage phải được cung cấp ngoài Render blueprint mẫu. LLM trên Render có thể dùng Groq/Gemini; Ollama cần VM riêng.
 
 ## 14. Rủi ro kiến trúc còn mở
 
@@ -229,7 +230,7 @@ Ollama và persistent Chroma storage phải được cung cấp ngoài Render bl
 ## 15. Quyết định kiến trúc hiện hành
 
 - **ADR-001:** Modular monolith cho MVP.
-- **ADR-002:** Ollama là provider duy nhất để tránh chi phí API.
+- **ADR-002:** Ollama local-first; Groq/Gemini là cloud fallback có cấu hình bằng secrets.
 - **ADR-003:** SSE cho token generation; WebSocket cho sự kiện hội thoại.
 - **ADR-004:** Collection Chroma riêng theo workspace.
 - **ADR-005:** Redis lock + conditional SQL update cho takeover.

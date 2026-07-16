@@ -1,6 +1,6 @@
 # 5. Tính năng sản phẩm
 
-Trạng thái tính năng tại **15/07/2026**.
+Trạng thái tính năng tại **16/07/2026**.
 
 | Nhóm | Tính năng hiện có | Trạng thái/giới hạn |
 |---|---|---|
@@ -11,7 +11,7 @@ Trạng thái tính năng tại **15/07/2026**.
 | Knowledge management | Summary, preview, delete, quick edit text, replace duplicate | Hoàn thiện luồng cơ bản |
 | Bot config | System prompt, domain, token, Test Bot | Hoàn thiện |
 | RAG | Top-K 1–5, distance threshold, history 10, injection patterns | Có; threshold cần tuning dữ liệu thật |
-| LLM | Ollama thường và streaming | Chỉ hỗ trợ Ollama |
+| LLM | Ollama/Groq/Gemini thường và streaming, fallback tự động | Cloud provider cần API key và gửi context ra ngoài |
 | Citations | filename, chunk, page, distance, preview | API và widget đã hiển thị |
 | Widget | UMD, SSE, LocalStorage, WebSocket/poll | Hoàn thiện MVP |
 | Widget customizer | Màu, tên, greeting, avatar URL, trái/phải, preview | Chưa upload avatar |
@@ -33,4 +33,4 @@ Trạng thái tính năng tại **15/07/2026**.
 - Web Push bằng Service Worker/VAPID.
 - Upload/crop avatar và asset storage.
 - Billing, quota, audit log, export báo cáo.
-- Provider OpenAI/Gemini; code hiện từ chối `LLM_PROVIDER` khác `ollama`.
+- OpenAI provider; code hiện hỗ trợ Ollama, Groq và Gemini.

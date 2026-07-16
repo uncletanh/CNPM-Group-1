@@ -1,10 +1,10 @@
 # 1. Giới thiệu sản phẩm
 
-Ngày cập nhật: **15/07/2026**.
+Ngày cập nhật: **16/07/2026**.
 
 ## NovaChat AI là gì?
 
-NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Doanh nghiệp tạo workspace, nạp tài liệu riêng và nhúng widget vào website. AI tìm context trong ChromaDB, dùng Ollama để sinh câu trả lời và chuyển hội thoại cho nhân viên khi context không đủ tin cậy hoặc khách chủ động yêu cầu.
+NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Doanh nghiệp tạo workspace, nạp tài liệu riêng và nhúng widget vào website. AI tìm context trong ChromaDB, dùng Ollama/Groq/Gemini để sinh câu trả lời và chuyển hội thoại cho nhân viên khi context không đủ tin cậy hoặc khách chủ động yêu cầu.
 
 ## Luồng cốt lõi hiện đã có
 
@@ -17,8 +17,8 @@ NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Doanh ngh
 ## Nguyên tắc sản phẩm
 
 - **Tách biệt theo workspace:** SQL authorization và Chroma collection riêng.
-- **Không giả định AI luôn đúng:** Context kém tin cậy sẽ chuyển sang người thay vì gọi Ollama.
-- **LLM local trước:** Code hiện chỉ hỗ trợ provider Ollama, tránh chi phí OpenAI/Gemini trong giai đoạn dự án.
+- **Không giả định AI luôn đúng:** Context kém tin cậy sẽ chuyển sang người thay vì gọi LLM.
+- **Local-first, cloud fallback:** Ollama là mặc định; Groq/Gemini giúp demo cloud khi có API key.
 - **Khả năng tiếp quản:** Agent luôn đọc được lịch sử đã lưu trước khi phản hồi.
 
 ## Phạm vi chưa hoàn tất
