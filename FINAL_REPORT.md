@@ -99,7 +99,7 @@ graph TD
 ### 3.2 Kiểm thử tự động & Bảo mật (SAST)
 - **7 test script backend trong CI**: auth (register/login/RBAC), chat RAG + streaming + citation,
   knowledge base, workspace CRUD, RBAC cách ly, và cả 3 LLM provider (Ollama/Groq/Gemini).
-- **Code Coverage = 73%** (đạt ngưỡng rubric > 70%), có cổng chặn merge nếu tụt dưới 70%.
+- **Code Coverage = 74%** (đạt ngưỡng rubric > 70%), có cổng chặn merge nếu tụt dưới 70%.
 - **SAST bằng Bandit**: 0 lỗi mức High. Cấu hình chỉ fail ở mức nghiêm trọng để pipeline không "đỏ oan".
 
 ### 3.3 Hạ tầng Cloud & vận hành
@@ -145,7 +145,7 @@ graph TD
 8. **Có đọc diff không?** Có — mọi PR đều qua review của Lead trước khi merge.
 9. **Test nào chứng minh chạy đúng?** 7 test script CI, ví dụ `test_phase4_chat.py` (streaming + citation),
    `test_workspace_rbac.py` (chặn truy cập trái phép), `test_auth_users.py` (đăng nhập/RBAC),
-   `test_llm_provider.py` (Ollama/Groq/Gemini/fallback). Coverage 73%, CI xanh trên cloud.
+   `test_llm_provider.py` (Ollama/Groq/Gemini/fallback). Coverage 74%, CI xanh trên cloud.
 10. **Dữ liệu nào gửi vào AI model?** System prompt của workspace + chunk truy hồi (đúng workspace) +
     tối đa 10 tin nhắn gần nhất + câu hỏi. Không gửi mật khẩu/dữ liệu workspace khác. **Đánh đổi có ý thức:**
     khi dùng Ollama (local) dữ liệu không rời hạ tầng nhóm; khi dùng fallback cloud (Groq/Gemini) để demo,
@@ -158,7 +158,7 @@ graph TD
 ---
 
 ## 6. Trạng thái hoàn thiện trước buổi bảo vệ
-- [x] **Code coverage 73%** (cổng chặn `--fail-under=70`) + **SAST Bandit** trong CI — pipeline xanh trên cloud.
+- [x] **Code coverage 74%** (cổng chặn `--fail-under=70`) + **SAST Bandit** trong CI — pipeline xanh trên cloud.
 - [x] **Fallback LLM cloud (Groq/Gemini)** đã có trong code, chọn qua `LLM_PROVIDER` — gỡ rào cản demo online.
 - [ ] **Việc còn lại (ưu tiên #1):** thực sự deploy backend lên Render với `LLM_PROVIDER=groq` + điền `GROQ_API_KEY`,
   deploy frontend lên Vercel, và lấy **link live** để demo trực tiếp trên hội đồng.
