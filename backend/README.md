@@ -68,7 +68,7 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 - Định dạng: PDF, TXT, DOCX.
 - Giới hạn: 50 MB/file.
 - Chunk: 1.000 ký tự, overlap 200.
-- Embedding: `all-MiniLM-L6-v2`.
+- Embedding: feature-hashing 384 chiều chạy thuần CPU, không tải model ngoài.
 - Upload lại cùng `source_filename` sẽ xóa chunk cũ trước khi thêm chunk mới.
 - Chat lọc chunk vượt `RAG_MAX_DISTANCE` hoặc chứa mẫu prompt injection.
 - Không có context đủ tin cậy sẽ chuyển session sang `waiting_human`.
@@ -93,8 +93,9 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 .\venv\Scripts\python.exe test_auth_users.py
 .\venv\Scripts\python.exe test_llm_provider.py
 .\venv\Scripts\python.exe test_workspace_crud.py
+.\venv\Scripts\python.exe -m pytest test_embeddings.py
 ```
 
-`test_chroma.py` là smoke test Chroma/embedding riêng và có thể tải model lần đầu.
+`test_chroma.py` là smoke test Chroma/embedding riêng.
 
-Trong CI, bảy script chính được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70%. Bandit cũng quét thư mục `app` với ngưỡng severity `high`.
+Trong CI, bảy script chính và unit test embedding được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70%. Bandit cũng quét thư mục `app` với ngưỡng severity `high`.
