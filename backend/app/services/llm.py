@@ -1,8 +1,11 @@
 import json
+import logging
 import os
 from typing import Iterator, Protocol
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProviderError(RuntimeError):
@@ -19,8 +22,40 @@ def _read_json(request: Request, timeout: int, provider_name: str) -> dict:
     try:
         with urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
-    except (HTTPError, URLError, TimeoutError, json.JSONDecodeError) as exc:
-        raise LLMProviderError(f"Không thể kết nối hoặc đọc phản hồi từ {provider_name}.") from exc
+    except HTTPError as exc:
+        detail = _http_error_detail(exc)
+        logger.warning(
+            "%s upstream HTTP %s: %s",
+            provider_name,
+            exc.code,
+            detail or "không có chi tiết",
+        )
+        suffix = f": {detail}" if detail else ""
+        raise LLMProviderError(f"{provider_name} trả về HTTP {exc.code}{suffix}") from exc
+    except TimeoutError as exc:
+        logger.warning("%s upstream timeout after %ss", provider_name, timeout)
+        raise LLMProviderError(f"{provider_name} hết thời gian chờ sau {timeout} giây.") from exc
+    except URLError as exc:
+        logger.warning("%s upstream connection failed: %s", provider_name, type(exc.reason).__name__)
+        raise LLMProviderError(f"Không thể kết nối tới {provider_name}.") from exc
+    except json.JSONDecodeError as exc:
+        logger.warning("%s upstream returned invalid JSON", provider_name)
+        raise LLMProviderError(f"{provider_name} trả về dữ liệu không hợp lệ.") from exc
+
+
+def _http_error_detail(exc: HTTPError) -> str:
+    try:
+        payload = json.loads(exc.read().decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if isinstance(error, dict):
+        message = error.get("message")
+    elif isinstance(error, str):
+        message = error
+    else:
+        message = payload.get("message") if isinstance(payload, dict) else None
+    return " ".join(str(message).split())[:240] if message else ""
 
 
 class OllamaProvider:
