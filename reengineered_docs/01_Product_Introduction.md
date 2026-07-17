@@ -8,8 +8,8 @@ NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Doanh ngh
 
 ## Luồng cốt lõi hiện đã có
 
-1. **Nạp tri thức:** Admin tải PDF, TXT, DOCX hoặc nhập text. Backend chia đoạn 1.000 ký tự, overlap 200, tạo feature-hashing embedding 384 chiều và lưu vào collection Chroma riêng của workspace.
-2. **Hỏi đáp RAG:** Widget gửi câu hỏi bằng SSE. Backend lấy Top-K chunk, lọc theo `RAG_MAX_DISTANCE`, chặn một số mẫu prompt injection và bổ sung tối đa 10 tin nhắn gần nhất.
+1. **Nạp tri thức:** Admin tải PDF, TXT, DOCX hoặc nhập text. Backend chia đoạn 600 ký tự, overlap 100, tạo Gemini embedding 768 chiều và lưu vào collection Chroma có version riêng của workspace.
+2. **Hỏi đáp RAG:** Widget gửi câu hỏi bằng SSE. Backend ghép lịch sử user vào retrieval query, kết hợp semantic search với BM25 local bằng RRF, lọc confidence/prompt injection và bổ sung tối đa 10 tin nhắn gần nhất vào prompt.
 3. **Trích dẫn:** Câu trả lời trả kèm filename, chunk, page và preview khi metadata có sẵn.
 4. **Human Handoff:** Session chuyển qua `waiting_human`, Agent nhận trong Omnibox, trả lời và resolve. Redis hỗ trợ lock/PubSub khi chạy nhiều instance.
 5. **Quản trị:** Dashboard quản lý workspace, thành viên, Knowledge Base, Bot Config, hội thoại, thống kê và tài khoản.

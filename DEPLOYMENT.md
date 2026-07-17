@@ -27,7 +27,11 @@ Sao chép `backend/.env.example` và thay toàn bộ giá trị production.
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Nếu dùng Gemini | Không commit API key |
 | `REDIS_URL` | Khi scale | Bắt buộc khi có nhiều backend instance |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Nếu dùng SSO | Callback là `/api/v1/auth/google/callback` |
-| `RAG_MAX_DISTANCE` | Nên đặt | Mặc định `1.5`, cần hiệu chỉnh bằng dữ liệu thật |
+| `EMBEDDING_PROVIDER` | Có | Đặt `gemini` trên production |
+| `GEMINI_API_KEY` | Có | Dùng chung cho Gemini LLM và Embedding Free Tier |
+| `GEMINI_EMBEDDING_MODEL` | Có | Mặc định `gemini-embedding-001` |
+| `RAG_MAX_DISTANCE` | Tùy chọn | Để trống để dùng mặc định Gemini `0.9`; cần hiệu chỉnh bằng evaluation |
+| `BM25_MIN_SCORE` | Nên đặt | Mặc định `5.5`; chỉ dùng BM25 độc lập khi lexical match rất mạnh |
 | `RATE_LIMIT_PER_MINUTE` | Nên đặt | Rate limiter hiện lưu trong memory từng instance |
 
 Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm build.
@@ -47,6 +51,8 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 
 - Dùng PostgreSQL và Redis tách biệt production.
 - Dùng workspace/file test riêng để hiệu chỉnh `RAG_MAX_DISTANCE`.
+- Sau khi chuyển sang Gemini Embedding, phải nạp lại tài liệu vì collection được version theo provider và dimension.
+- Gemini Free Tier có rate limit và dữ liệu có thể được Google dùng để cải thiện sản phẩm; không dùng tài liệu nhạy cảm khi chưa đánh giá điều khoản dữ liệu.
 - Cấu hình Google OAuth callback đúng domain staging.
 - Kiểm tra `allowed_origin` của widget trên domain staging.
 - Kiểm tra restart backend không làm mất PostgreSQL/Chroma data.

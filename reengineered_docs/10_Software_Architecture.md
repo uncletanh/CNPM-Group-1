@@ -102,13 +102,13 @@ sequenceDiagram
     participant A as Admin
     participant API as FastAPI
     participant L as Document Loader
-    participant E as Feature-hashing Embedding
+    participant E as Gemini Embedding
     participant C as ChromaDB
     A->>API: Upload PDF/TXT/DOCX hoặc text
     API->>API: Kiểm tra quyền, extension, 50 MB
     API->>L: Trích xuất document/page
     L->>API: Text documents
-    API->>API: Split 1000, overlap 200
+    API->>API: Split 600, overlap 100
     API->>C: Xóa chunk cùng filename
     API->>E: Tạo embedding
     E->>C: Lưu chunks + metadata
@@ -129,7 +129,7 @@ Ingestion hiện đồng bộ trong HTTP request. Chưa có OCR, object storage,
 8. Gọi provider đã chọn, thường hoặc streaming; fallback chỉ đổi provider trước chunk đầu tiên.
 9. Lưu answer và trả sources.
 
-Embedding dùng feature-hashing 384 chiều, chuẩn hóa vector và bổ sung đặc trưng từ không dấu để chạy nhanh trên Render Free. Cách này ưu tiên tốc độ và tìm kiếm theo từ khóa hơn độ hiểu ngữ nghĩa của transformer. Generation hỗ trợ `ollama`, `groq`, `gemini` và `auto`; chế độ `auto` mặc định thử `ollama,groq,gemini`, bỏ qua cloud provider chưa có API key.
+Embedding production dùng `gemini-embedding-001` 768 chiều với task type bất đối xứng cho document/query. Retrieval lấy semantic candidates từ Chroma, chấm BM25 trên chunks cùng workspace, gộp thứ hạng bằng RRF và áp dụng confidence trước khi gọi LLM. Feature-hashing 384 chiều chỉ dùng cho local/test khi không có API key. Generation hỗ trợ `ollama`, `groq`, `gemini` và `auto`; chế độ `auto` mặc định thử `ollama,groq,gemini`, bỏ qua cloud provider chưa có API key.
 
 ## 7. API và realtime
 

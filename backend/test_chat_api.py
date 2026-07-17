@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from langchain_chroma import Chroma
 
 from app.api.v1 import chat as chat_api
-from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS
+from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS, get_knowledge_collection_name
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.chat import ChatSession, Message
@@ -50,7 +50,7 @@ def run_chat_api_test() -> None:
     db.commit()
     db.refresh(workspace)
 
-    collection_name = f"workspace_{workspace.id}_knowledge"
+    collection_name = get_knowledge_collection_name(workspace.id)
     vector_store = None
     try:
         vector_store = Chroma(

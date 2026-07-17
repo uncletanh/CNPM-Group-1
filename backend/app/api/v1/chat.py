@@ -17,13 +17,14 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from langchain_core.documents import Document
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.api.v1.workspaces import get_embedding_model, get_workspace_access
 from app.core import security
-from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS
+from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS, get_knowledge_collection_name
 from app.db.session import SessionLocal, get_db
 from app.models.chat import (
     STATUS_BOT_HANDLING,
@@ -48,7 +49,9 @@ from app.schemas.chat import (
 )
 from app.schemas.workspace import WidgetSettingsResponse
 from app.services.llm import LLMProviderError, get_llm_provider
+from app.services.embeddings import EmbeddingServiceError
 from app.services.realtime import realtime_manager, takeover_lock
+from app.services.retrieval import hybrid_rank
 
 router = APIRouter()
 
@@ -76,7 +79,12 @@ HANDOFF_TIMEOUT_MESSAGE = (
     "bạn có thể tiếp tục để lại nội dung cần hỗ trợ tại đây."
 )
 HANDOFF_TIMEOUT_SECONDS = int(os.getenv("HUMAN_HANDOFF_TIMEOUT_SECONDS", "60"))
-RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "1.5"))
+_configured_rag_distance = os.getenv("RAG_MAX_DISTANCE", "").strip()
+RAG_MAX_DISTANCE = (
+    float(_configured_rag_distance)
+    if _configured_rag_distance
+    else float(getattr(get_embedding_model(), "default_max_distance", 1.0))
+)
 CHAT_HISTORY_LIMIT = int(os.getenv("CHAT_HISTORY_LIMIT", "10"))
 PROMPT_INJECTION_PATTERNS = (
     r"\b(ignore|disregard|forget)\b.{0,40}\b(instruction|prompt|rule)s?\b",
@@ -149,6 +157,24 @@ def recent_history(db: Session, session: ChatSession, before_message_id: int) ->
         f"{labels.get(message.sender, message.sender)}: {message.content}"
         for message in reversed(messages)
     )
+
+
+def retrieval_query(db: Session, session: ChatSession, before_message_id: int, message: str) -> str:
+    previous_user_messages = (
+        db.query(Message)
+        .filter(
+            Message.session_id == session.id,
+            Message.id < before_message_id,
+            Message.sender == "user",
+        )
+        .order_by(Message.id.desc())
+        .limit(2)
+        .all()
+    )
+    context = "\n".join(item.content for item in reversed(previous_user_messages))
+    if not context:
+        return message
+    return f"Ngữ cảnh trước đó:\n{context}\nCâu hỏi hiện tại:\n{message}"
 
 
 def move_to_handoff(db: Session, session: ChatSession) -> None:
@@ -263,7 +289,7 @@ def get_workspace_vector_store(workspace_id: int):
     from langchain_chroma import Chroma
 
     return Chroma(
-        collection_name=f"workspace_{workspace_id}_knowledge",
+        collection_name=get_knowledge_collection_name(workspace_id),
         embedding_function=get_embedding_model(),
         persist_directory=CHROMA_DATA_DIR,
         client_settings=CHROMA_SETTINGS,
@@ -273,16 +299,33 @@ def get_workspace_vector_store(workspace_id: int):
 def retrieve_context(workspace_id: int, message: str, top_k: int):
     try:
         vector_store = get_workspace_vector_store(workspace_id)
-        retrieved = vector_store.similarity_search_with_score(message, k=top_k)
+        semantic_limit = max(top_k * 4, 10)
+        semantic_results = vector_store.similarity_search_with_score(message, k=semantic_limit)
+        raw_documents = vector_store.get(include=["documents", "metadatas"])
+        all_documents = [
+            Document(page_content=content, metadata=metadata or {})
+            for content, metadata in zip(
+                raw_documents.get("documents") or [],
+                raw_documents.get("metadatas") or [],
+            )
+            if content and content.strip()
+        ]
+        ranked = hybrid_rank(
+            semantic_results,
+            all_documents,
+            message,
+            top_k,
+            RAG_MAX_DISTANCE,
+        )
+    except EmbeddingServiceError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Không thể truy vấn ChromaDB: {exc}")
 
     return [
-        (document, float(distance) if distance is not None else None)
-        for document, distance in retrieved
-        if document.page_content.strip()
-        and not contains_prompt_injection(document.page_content)
-        and (distance is None or float(distance) <= RAG_MAX_DISTANCE)
+        (result.document, result.distance)
+        for result in ranked
+        if not contains_prompt_injection(result.document.page_content)
     ]
 
 
@@ -335,8 +378,9 @@ async def chat_with_workspace(
             sources=[],
         )
 
+    query = retrieval_query(db, session, user_message.id, message)
     retrieved = [] if contains_prompt_injection(message) else retrieve_context(
-        workspace_id, message, chat_in.top_k
+        workspace_id, query, chat_in.top_k
     )
     if not retrieved:
         move_to_handoff(db, session)
@@ -415,7 +459,11 @@ async def chat_with_workspace_stream(
     retrieved = (
         []
         if is_human_handling or contains_prompt_injection(message)
-        else retrieve_context(workspace_id, message, chat_in.top_k)
+        else retrieve_context(
+            workspace_id,
+            retrieval_query(db, session, user_message.id, message),
+            chat_in.top_k,
+        )
     )
     history = recent_history(db, session, user_message.id)
 

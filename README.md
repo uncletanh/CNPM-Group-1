@@ -11,7 +11,7 @@ Các luồng chính đã có trong code:
 - Đăng ký, đăng nhập email/mật khẩu, JWT và Google SSO khi có credentials.
 - Workspace đa tenant, thành viên `admin`/`agent` và lời mời bằng liên kết.
 - Knowledge Base cho PDF, TXT, DOCX và nội dung nhập trực tiếp; có danh sách, preview, sửa text, xóa và thay thế tài liệu trùng tên.
-- RAG dùng feature-hashing 384 chiều tối ưu cho CPU thấp, ChromaDB, Top-K, ngưỡng khoảng cách, lọc prompt injection và 10 tin nhắn gần nhất.
+- RAG dùng Gemini Embedding 768 chiều kết hợp BM25 local, hybrid rerank, ngưỡng confidence, lọc prompt injection và 10 tin nhắn gần nhất.
 - Ollama, Groq hoặc Gemini trả lời thường/streaming; chế độ `auto` fallback theo provider đã cấu hình.
 - Widget lưu session trong LocalStorage, hiển thị nguồn, gọi nhân viên, nhận cập nhật qua WebSocket và fallback polling.
 - Omnibox cho Agent xem lịch sử, tiếp quản, trả lời và đóng hội thoại.
@@ -30,7 +30,8 @@ Chi tiết và các phần còn thiếu được duy trì tại [Trạng thái t
 | Widget | React 19, TypeScript, Vite Library Mode |
 | CSDL quan hệ | SQLite khi phát triển; PostgreSQL cho staging/production |
 | Vector store | ChromaDB persistent, collection riêng theo workspace |
-| Embedding | Feature-hashing 384 chiều, hỗ trợ tiếng Việt có dấu/không dấu |
+| Embedding | Gemini `gemini-embedding-001` 768 chiều; feature-hashing chỉ dùng fallback local |
+| Retrieval | Chroma semantic search + BM25 local + Reciprocal Rank Fusion |
 | LLM | Ollama `qwen2.5:3b`, Groq, Gemini và fallback tự động |
 | Realtime | SSE cho token AI; WebSocket + Redis Pub/Sub cho sự kiện hội thoại |
 
@@ -141,6 +142,7 @@ GitHub Actions chạy các test backend bằng `coverage`, yêu cầu tổng cov
 
 - [Hướng dẫn triển khai](DEPLOYMENT.md)
 - [Test case Knowledge Base](PHASE2_TEST_CASES.md)
+- [Bộ đánh giá RAG 50 câu](evaluation/README.md)
 - [Backend README](backend/README.md)
 - [Dashboard README](frontend/README.md)
 - [Widget README](widget/README.md)
