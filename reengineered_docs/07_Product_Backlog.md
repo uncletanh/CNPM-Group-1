@@ -37,7 +37,7 @@ Ngày cập nhật: **16/07/2026**. Trạng thái dựa trên code local chờ m
 | P1 | Quản trị Agent nâng cao | Đổi role, disable, ownership transfer | RBAC policy |
 | P1 | Distributed rate limiting | In-memory limiter không global | Redis |
 | P1 | Production-ready embed snippet/CDN versioning | Snippet hiện dùng CDN mẫu và localhost API | Widget hosting/release URL |
-| P1 | Chạy benchmark và tuning RAG theo workspace/model | Threshold `1.2` mới là mặc định | Golden dataset 50 câu đã có |
+| P1 | Chạy benchmark và tuning RAG theo workspace/model | Threshold semantic/BM25 hiện là mặc định kỹ thuật | Golden dataset 50 câu đã có |
 | P2 | Upload/crop avatar và object storage | Hiện chỉ nhận URL | S3/R2 hoặc tương đương |
 | P2 | OCR và parser tài liệu nâng cao | PDF scan/bảng chưa ổn định | OCR/parser service |
 | P2 | Analytics theo thời gian, SLA, export | Dashboard hiện chỉ có aggregate | Event/audit data |
