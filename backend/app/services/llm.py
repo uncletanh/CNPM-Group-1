@@ -147,7 +147,7 @@ class GeminiProvider:
         self.base_url = os.getenv(
             "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
         ).rstrip("/")
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
         self.timeout = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "60"))
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:

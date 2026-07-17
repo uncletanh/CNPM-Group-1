@@ -24,8 +24,18 @@ services:
         sync: false
       - key: OLLAMA_MODEL
         value: qwen2.5:3b
+      - key: LLM_PROVIDER
+        value: auto
+      - key: LLM_FALLBACK_ORDER
+        value: groq,gemini
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_TIMEOUT_SECONDS
+        value: 10
       - key: GEMINI_API_KEY
         sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: EMBEDDING_PROVIDER
         value: gemini
       - key: GEMINI_EMBEDDING_MODEL

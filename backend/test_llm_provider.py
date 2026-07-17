@@ -70,6 +70,7 @@ def run_llm_provider_test() -> None:
         "LLM_FALLBACK_PROVIDERS",
         "GROQ_API_KEY",
         "GEMINI_API_KEY",
+        "GEMINI_MODEL",
     ]
     original_env = {name: os.environ.get(name) for name in env_names}
     try:
@@ -111,7 +112,9 @@ def run_llm_provider_test() -> None:
         assert "".join(groq.generate_stream("system", "question")) == "Groq stream"
 
         os.environ["GEMINI_API_KEY"] = "test-gemini-key"
+        os.environ.pop("GEMINI_MODEL", None)
         gemini = GeminiProvider()
+        assert gemini.model == "gemini-2.5-flash"
         gemini_response = {
             "candidates": [{"content": {"parts": [{"text": "Gemini answer"}]}}]
         }
