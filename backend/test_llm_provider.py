@@ -2,7 +2,8 @@
 
 import json
 import os
-from urllib.error import URLError
+from io import BytesIO
+from urllib.error import HTTPError, URLError
 
 from app.services import llm
 from app.services.llm import (
@@ -166,6 +167,21 @@ def run_llm_provider_test() -> None:
             raise AssertionError("Mất kết nối phải sinh LLMProviderError")
         except LLMProviderError:
             pass
+
+        llm.urlopen = lambda *a, **k: (_ for _ in ()).throw(
+            HTTPError(
+                url="https://api.groq.com/openai/v1/chat/completions",
+                code=401,
+                msg="Unauthorized",
+                hdrs=None,
+                fp=BytesIO(json.dumps({"error": {"message": "Invalid API Key"}}).encode()),
+            )
+        )
+        try:
+            groq.generate("system", "question")
+            raise AssertionError("HTTP error phải giữ mã trạng thái và chi tiết an toàn")
+        except LLMProviderError as exc:
+            assert str(exc) == "Groq trả về HTTP 401: Invalid API Key"
 
         print("[SUCCESS] Ollama/Groq/Gemini/fallback provider tests passed.")
     finally:
