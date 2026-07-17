@@ -3,7 +3,14 @@ from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from app.api.v1 import users, auth, workspaces, chat
-from app.db.session import Base, engine, ensure_chat_session_schema, ensure_workspace_schema
+from app.db.session import (
+    Base,
+    DATABASE_BACKEND,
+    DATABASE_IS_PERSISTENT,
+    engine,
+    ensure_chat_session_schema,
+    ensure_workspace_schema,
+)
 from app.models.workspace import WorkspaceInvitation, WorkspaceMember  # noqa: F401
 from app.services.observability import (
     OperationsMiddleware,
@@ -94,7 +101,12 @@ def read_root():
 
 @app.get("/health", tags=["Operations"])
 def health_check():
-    return {"status": "ok", "service": "novachat-backend"}
+    return {
+        "status": "ok",
+        "service": "novachat-backend",
+        "database_backend": DATABASE_BACKEND,
+        "database_persistent": DATABASE_IS_PERSISTENT,
+    }
 
 
 @app.get("/metrics", include_in_schema=False)

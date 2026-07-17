@@ -1,6 +1,6 @@
 # Triển khai NovaChat AI
 
-Ngày cập nhật: **16/07/2026**.
+Ngày cập nhật: **18/07/2026**.
 
 ## Thành phần cần triển khai
 
@@ -69,3 +69,5 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 - `.github/workflows/ci.yml`: Python 3.11, Node 22, backend coverage gate 70%, Bandit SAST mức `high`, frontend/widget lint và build.
 
 Các file này là nền tảng triển khai, chưa thay thế cấu hình secrets, persistent storage, domain, monitoring và backup của môi trường thật.
+
+Blueprint hiện tạo `novachat-db` bằng Render Postgres Free và tự truyền `DATABASE_URL` cho backend. Không dùng SQLite trên Render Free: filesystem bị xóa khi service sleep, restart hoặc redeploy. Render Postgres Free phù hợp demo nhưng hết hạn sau 30 ngày, vì vậy cần chuyển sang PostgreSQL dài hạn trước production.

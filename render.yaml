@@ -2,11 +2,14 @@ services:
   - type: web
     name: novachat-backend
     env: python
+    plan: free
     buildCommand: "cd backend && pip install -r requirements.txt"
     startCommand: "cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: novachat-db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
@@ -31,3 +34,9 @@ services:
     envVars:
       - key: VITE_API_URL
         sync: false
+
+databases:
+  - name: novachat-db
+    plan: free
+    databaseName: novachat
+    user: novachat
