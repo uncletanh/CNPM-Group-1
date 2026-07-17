@@ -24,6 +24,18 @@ services:
         sync: false
       - key: OLLAMA_MODEL
         value: qwen2.5:3b
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: EMBEDDING_PROVIDER
+        value: gemini
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: GEMINI_EMBEDDING_DIMENSION
+        value: 768
+      - key: BM25_MIN_SCORE
+        value: 5.5
+      - key: HYBRID_SEMANTIC_WEIGHT
+        value: 0.7
 
   - type: web
     name: novachat-frontend

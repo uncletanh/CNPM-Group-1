@@ -55,3 +55,18 @@ Tổng tối đa 200 điểm. Mốc đề xuất trước demo:
 - Injection lọt qua: bổ sung pattern và test regression tương ứng.
 
 Không dùng chính bộ 50 câu để tuyên bố chất lượng tổng quát. Khi có tài liệu doanh nghiệp thật, cần tạo thêm một bộ holdout chưa dùng trong quá trình tuning.
+
+## Chạy tự động qua API
+
+Sau khi nạp `minh_an_support_policy.txt` vào workspace evaluation, đặt ba biến môi trường:
+
+```powershell
+$env:NOVACHAT_API_URL="https://<backend>/api/v1"
+$env:EVAL_WORKSPACE_ID="<workspace-id>"
+$env:EVAL_WIDGET_TOKEN="<widget-token>"
+python evaluation/run_rag_evaluation.py
+```
+
+Script tạo session riêng cho từng case, giữ session cho nhóm `history`, chấm behavior, keywords và source, rồi ghi báo cáo vào `evaluation/rag_evaluation_report.json`. Exit code chỉ bằng `0` khi đạt 50/50.
+
+Production dùng Gemini Embedding Free + BM25 local. Sau khi đổi từ embedding cũ sang Gemini, cần nạp lại file vì collection được version theo model/dimension. Không commit API key hoặc widget token vào repository.

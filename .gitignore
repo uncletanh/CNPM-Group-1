@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 venv/
 .env
+evaluation/rag_evaluation_report.json
 
 # IDEs
 .vscode/

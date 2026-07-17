@@ -1,11 +1,15 @@
 from app.api.v1.workspaces import get_knowledge_preview, get_knowledge_summary
-from app.db.chroma import get_chroma_client, get_workspace_collection
+from app.db.chroma import (
+    get_chroma_client,
+    get_knowledge_collection_name,
+    get_workspace_collection,
+)
 
 
 def main():
     workspace_id = "999998"
     client = get_chroma_client()
-    collection_name = f"workspace_{workspace_id}_knowledge"
+    collection_name = get_knowledge_collection_name(workspace_id)
 
     try:
         collection = get_workspace_collection(workspace_id)
@@ -54,7 +58,7 @@ def main():
         except Exception:
             pass
         try:
-            client.delete_collection("workspace_999999_knowledge")
+            client.delete_collection(get_knowledge_collection_name("999999"))
         except Exception:
             pass
 

@@ -26,7 +26,12 @@ Các biến quan trọng:
 | `GROQ_API_KEY`, `GROQ_MODEL` | Bật Groq cloud, mặc định `llama-3.1-8b-instant` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Bật Gemini cloud, mặc định `gemini-2.0-flash` |
 | `REDIS_URL` | Lock takeover và Pub/Sub nhiều instance; để trống khi chạy local một instance |
-| `RAG_MAX_DISTANCE` | Ngưỡng khoảng cách Chroma, mặc định `1.2` |
+| `EMBEDDING_PROVIDER` | `gemini`, `local` hoặc `auto`; production dùng `gemini` |
+| `GEMINI_EMBEDDING_MODEL` | Mặc định `gemini-embedding-001` |
+| `GEMINI_EMBEDDING_DIMENSION` | Mặc định `768` |
+| `RAG_MAX_DISTANCE` | Để trống để dùng mặc định theo provider: Gemini `0.9`, local `1.3` |
+| `BM25_MIN_SCORE` | Điểm BM25 mạnh tối thiểu để cứu kết quả semantic yếu, mặc định `5.5` |
+| `HYBRID_SEMANTIC_WEIGHT` | Trọng số semantic trong RRF, mặc định `0.7` |
 | `CHAT_HISTORY_LIMIT` | Số tin nhắn gần nhất đưa vào prompt, mặc định `10` |
 | `HUMAN_HANDOFF_TIMEOUT_SECONDS` | Thời gian gửi fallback, mặc định `60` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Bật Google SSO |
@@ -67,8 +72,12 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 
 - Định dạng: PDF, TXT, DOCX.
 - Giới hạn: 50 MB/file.
-- Chunk: 1.000 ký tự, overlap 200.
-- Embedding: feature-hashing 384 chiều chạy thuần CPU, không tải model ngoài.
+- Chunk: 600 ký tự, overlap 100 và ưu tiên ranh giới đoạn/tiêu đề.
+- Embedding production: Gemini `gemini-embedding-001`, task type `RETRIEVAL_DOCUMENT` và `QUESTION_ANSWERING`, 768 chiều.
+- Retrieval: semantic Top-K kết hợp BM25 local bằng Reciprocal Rank Fusion.
+- Truy vấn retrieval ghép tối đa hai tin nhắn user gần nhất để hiểu câu hỏi phụ thuộc lịch sử.
+- Feature-hashing 384 chiều chỉ là fallback khi chạy local/test không có API key.
+- Collection có version theo provider; sau khi đổi provider/model cần nạp lại tài liệu.
 - Upload lại cùng `source_filename` sẽ xóa chunk cũ trước khi thêm chunk mới.
 - Chat lọc chunk vượt `RAG_MAX_DISTANCE` hoặc chứa mẫu prompt injection.
 - Không có context đủ tin cậy sẽ chuyển session sang `waiting_human`.

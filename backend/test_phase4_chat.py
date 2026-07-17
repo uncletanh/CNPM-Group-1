@@ -107,17 +107,23 @@ def run_phase4_test() -> None:
         db.commit()
 
         provider = StreamingProvider()
+        retrieval_queries = []
         original_retrieve = chat_api.retrieve_context
         original_provider = chat_api.get_llm_provider
-        chat_api.retrieve_context = lambda *_: [
-            (
-                Document(
-                    page_content="Chính sách bảo hành là 12 tháng.",
-                    metadata={"source_filename": "bao-hanh.pdf", "chunk_index": 0, "page": 1},
-                ),
-                0.2,
-            )
-        ]
+
+        def fake_retrieve(_, query, __):
+            retrieval_queries.append(query)
+            return [
+                (
+                    Document(
+                        page_content="Chính sách bảo hành là 12 tháng.",
+                        metadata={"source_filename": "bao-hanh.pdf", "chunk_index": 0, "page": 1},
+                    ),
+                    0.2,
+                )
+            ]
+
+        chat_api.retrieve_context = fake_retrieve
         chat_api.get_llm_provider = lambda: provider
         try:
             stream = client.post(
@@ -130,6 +136,8 @@ def run_phase4_test() -> None:
             chat_api.get_llm_provider = original_provider
 
         assert stream.status_code == 200, stream.text
+        assert "Câu hỏi trước" in retrieval_queries[-1]
+        assert "Bảo hành bao lâu?" in retrieval_queries[-1]
         assert "Câu hỏi trước" in provider.last_prompt
         done_payload = None
         for block in stream.text.split("\n\n"):

@@ -15,6 +15,7 @@ from app.db.chroma import (
     CHROMA_DATA_DIR,
     CHROMA_SETTINGS,
     get_chroma_client,
+    get_knowledge_collection_name,
     get_workspace_collection,
 )
 from app.db.session import get_db
@@ -50,8 +51,8 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_KNOWLEDGE_EXTENSIONS = {".pdf", ".txt", ".docx"}
 MAX_KNOWLEDGE_FILE_SIZE = 50 * 1024 * 1024
-CHUNK_SIZE = 1000
-CHUNK_OVERLAP = 200
+CHUNK_SIZE = 600
+CHUNK_OVERLAP = 100
 
 def get_owned_workspace(
     workspace_id: int,
@@ -209,6 +210,7 @@ def replace_knowledge_documents(
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
+        separators=["\n\n", "\n", ". ", " ", ""],
     )
     chunks = [
         chunk
@@ -231,7 +233,7 @@ def replace_knowledge_documents(
             }
         )
 
-    collection_name = f"workspace_{workspace_id}_knowledge"
+    collection_name = get_knowledge_collection_name(workspace_id)
     vector_store = Chroma(
         collection_name=collection_name,
         embedding_function=get_embedding_model(),
@@ -289,12 +291,11 @@ def delete_workspace(
     current_user: User = Depends(get_current_user),
 ):
     workspace = get_owned_workspace(workspace_id, db, current_user)
-    collection_name = f"workspace_{workspace_id}_knowledge"
-    try:
-        get_chroma_client().delete_collection(collection_name)
-    except Exception:
-        # Collection chưa tồn tại thì không có dữ liệu vector cần dọn.
-        pass
+    collection_prefix = f"workspace_{workspace_id}_knowledge"
+    for collection in get_chroma_client().list_collections():
+        collection_name = getattr(collection, "name", str(collection))
+        if collection_name.startswith(collection_prefix):
+            get_chroma_client().delete_collection(collection_name)
     session_ids = [
         row[0]
         for row in db.query(ChatSession.id)

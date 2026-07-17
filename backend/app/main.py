@@ -12,6 +12,7 @@ from app.db.session import (
     ensure_workspace_schema,
 )
 from app.models.workspace import WorkspaceInvitation, WorkspaceMember  # noqa: F401
+from app.services.embeddings import get_embedding_collection_suffix
 from app.services.observability import (
     OperationsMiddleware,
     configure_logging,
@@ -106,6 +107,7 @@ def health_check():
         "service": "novachat-backend",
         "database_backend": DATABASE_BACKEND,
         "database_persistent": DATABASE_IS_PERSISTENT,
+        "embedding_backend": get_embedding_collection_suffix(),
     }
 
 
