@@ -1,12 +1,22 @@
 import os
+import logging
 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, inspect, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+DATABASE_BACKEND = make_url(DATABASE_URL).get_backend_name()
+DATABASE_IS_PERSISTENT = DATABASE_BACKEND != "sqlite"
+
+if os.getenv("ENVIRONMENT", "development").lower() == "production" and not DATABASE_IS_PERSISTENT:
+    logging.getLogger(__name__).critical(
+        "Production is using SQLite on an ephemeral filesystem. "
+        "Set DATABASE_URL to PostgreSQL before storing real data."
+    )
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
