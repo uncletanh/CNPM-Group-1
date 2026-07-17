@@ -26,7 +26,7 @@ Các biến quan trọng:
 | `GROQ_API_KEY`, `GROQ_MODEL` | Bật Groq cloud, mặc định `llama-3.1-8b-instant` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Bật Gemini cloud, mặc định `gemini-2.0-flash` |
 | `REDIS_URL` | Lock takeover và Pub/Sub nhiều instance; để trống khi chạy local một instance |
-| `RAG_MAX_DISTANCE` | Ngưỡng khoảng cách Chroma, mặc định `1.2` |
+| `RAG_MAX_DISTANCE` | Ngưỡng khoảng cách Chroma, mặc định `1.5` |
 | `CHAT_HISTORY_LIMIT` | Số tin nhắn gần nhất đưa vào prompt, mặc định `10` |
 | `HUMAN_HANDOFF_TIMEOUT_SECONDS` | Thời gian gửi fallback, mặc định `60` |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Bật Google SSO |

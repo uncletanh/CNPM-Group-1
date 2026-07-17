@@ -27,7 +27,7 @@ Sao chép `backend/.env.example` và thay toàn bộ giá trị production.
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Nếu dùng Gemini | Không commit API key |
 | `REDIS_URL` | Khi scale | Bắt buộc khi có nhiều backend instance |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Nếu dùng SSO | Callback là `/api/v1/auth/google/callback` |
-| `RAG_MAX_DISTANCE` | Nên đặt | Mặc định `1.2`, cần hiệu chỉnh bằng dữ liệu thật |
+| `RAG_MAX_DISTANCE` | Nên đặt | Mặc định `1.5`, cần hiệu chỉnh bằng dữ liệu thật |
 | `RATE_LIMIT_PER_MINUTE` | Nên đặt | Rate limiter hiện lưu trong memory từng instance |
 
 Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm build.
