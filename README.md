@@ -2,7 +2,7 @@
 
 NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Hệ thống kết hợp kho tri thức riêng theo workspace, LLM local/cloud, widget nhúng website và quy trình Human Handoff để nhân viên tiếp quản hội thoại khi AI không đủ độ tin cậy.
 
-Ngày đồng bộ tài liệu: **16/07/2026**.
+Ngày đồng bộ tài liệu: **18/07/2026**.
 
 ## Trạng thái hiện tại
 
@@ -11,7 +11,7 @@ Các luồng chính đã có trong code:
 - Đăng ký, đăng nhập email/mật khẩu, JWT và Google SSO khi có credentials.
 - Workspace đa tenant, thành viên `admin`/`agent` và lời mời bằng liên kết.
 - Knowledge Base cho PDF, TXT, DOCX và nội dung nhập trực tiếp; có danh sách, preview, sửa text, xóa và thay thế tài liệu trùng tên.
-- RAG dùng `all-MiniLM-L6-v2`, ChromaDB, Top-K, ngưỡng khoảng cách, lọc prompt injection và 10 tin nhắn gần nhất.
+- RAG dùng feature-hashing 384 chiều tối ưu cho CPU thấp, ChromaDB, Top-K, ngưỡng khoảng cách, lọc prompt injection và 10 tin nhắn gần nhất.
 - Ollama, Groq hoặc Gemini trả lời thường/streaming; chế độ `auto` fallback theo provider đã cấu hình.
 - Widget lưu session trong LocalStorage, hiển thị nguồn, gọi nhân viên, nhận cập nhật qua WebSocket và fallback polling.
 - Omnibox cho Agent xem lịch sử, tiếp quản, trả lời và đóng hội thoại.
@@ -30,7 +30,7 @@ Chi tiết và các phần còn thiếu được duy trì tại [Trạng thái t
 | Widget | React 19, TypeScript, Vite Library Mode |
 | CSDL quan hệ | SQLite khi phát triển; PostgreSQL cho staging/production |
 | Vector store | ChromaDB persistent, collection riêng theo workspace |
-| Embedding | Hugging Face `all-MiniLM-L6-v2` |
+| Embedding | Feature-hashing 384 chiều, hỗ trợ tiếng Việt có dấu/không dấu |
 | LLM | Ollama `qwen2.5:3b`, Groq, Gemini và fallback tự động |
 | Realtime | SSE cho token AI; WebSocket + Redis Pub/Sub cho sự kiện hội thoại |
 

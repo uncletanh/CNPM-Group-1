@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import tempfile
@@ -42,25 +43,15 @@ from app.schemas.workspace import (
     WidgetSettingsResponse,
     WidgetSettingsUpdate,
 )
+from app.services.embeddings import get_embedding_model
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 ALLOWED_KNOWLEDGE_EXTENSIONS = {".pdf", ".txt", ".docx"}
 MAX_KNOWLEDGE_FILE_SIZE = 50 * 1024 * 1024
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-
-_embedding_model = None
-
-
-def get_embedding_model():
-    global _embedding_model
-    if _embedding_model is None:
-        from langchain_community.embeddings import HuggingFaceEmbeddings
-
-        _embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return _embedding_model
-
 
 def get_owned_workspace(
     workspace_id: int,
@@ -573,8 +564,17 @@ async def upload_knowledge(
         raise
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="File TXT phai duoc ma hoa UTF-8.")
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Khong the nap tri thuc: {exc}")
+    except Exception:
+        logger.exception(
+            "Knowledge ingestion failed workspace_id=%s filename=%s file_size=%s",
+            workspace_id,
+            filename,
+            file_size,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Dịch vụ tạo embedding tạm thời không khả dụng. Vui lòng thử lại sau.",
+        )
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)

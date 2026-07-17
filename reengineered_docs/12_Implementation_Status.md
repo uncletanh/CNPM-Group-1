@@ -1,6 +1,6 @@
 # 12. Trạng thái triển khai NovaChat AI
 
-Ngày cập nhật: **16/07/2026**. Đây là nguồn trạng thái chuẩn của bộ tài liệu.
+Ngày cập nhật: **18/07/2026**. Đây là nguồn trạng thái chuẩn của bộ tài liệu.
 
 ## Tổng quan
 
@@ -19,7 +19,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 ### Knowledge Base
 
 - PDF, TXT, DOCX tối đa 50 MB và tri thức text trực tiếp.
-- Chunk size 1.000, overlap 200; embedding `all-MiniLM-L6-v2`.
+- Chunk size 1.000, overlap 200; feature-hashing embedding 384 chiều tối ưu cho Render Free.
 - Chroma collection riêng theo workspace.
 - Danh sách document/chunk, metadata, preview nội dung/page và xóa.
 - Quick edit text và thay thế chunk khi cùng filename.
