@@ -141,6 +141,7 @@ GitHub Actions chạy các test backend bằng `coverage`, yêu cầu tổng cov
 
 - [Hướng dẫn triển khai](DEPLOYMENT.md)
 - [Test case Knowledge Base](PHASE2_TEST_CASES.md)
+- [Bộ đánh giá RAG 50 câu](evaluation/README.md)
 - [Backend README](backend/README.md)
 - [Dashboard README](frontend/README.md)
 - [Widget README](widget/README.md)

@@ -65,6 +65,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - GitHub Actions: Python 3.11 và Node 22.
 - Bảy nhóm test backend cho Chat/SSE, Knowledge Base, Phase 4 handoff/RAG, workspace/RBAC, auth/user, LLM provider và workspace CRUD.
 - Coverage gate tổng tối thiểu 70% và Bandit SAST chặn lỗi severity `high`.
+- Golden dataset RAG 50 câu gồm factual, paraphrase, history, handoff và prompt injection.
 
 ## Cần cấu hình khi triển khai
 
@@ -92,7 +93,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - Email invitation, verify email và reset password.
 - Distributed rate limiting và quota.
 - Quản trị Agent nâng cao: đổi role, disable, ownership transfer.
-- RAG evaluation dataset và tuning threshold trên dữ liệu thật.
+- Chạy benchmark 50 câu trên từng model và tuning threshold bằng dữ liệu thật.
 - Migration Alembic đầy đủ thay cho `ensure_*_schema()` runtime.
 
 ### P2
