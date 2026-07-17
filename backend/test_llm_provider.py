@@ -70,6 +70,7 @@ def run_llm_provider_test() -> None:
         "LLM_FALLBACK_ORDER",
         "LLM_FALLBACK_PROVIDERS",
         "GROQ_API_KEY",
+        "GROQ_MODEL",
         "GEMINI_API_KEY",
         "GEMINI_MODEL",
     ]
@@ -98,7 +99,9 @@ def run_llm_provider_test() -> None:
         assert "".join(ollama.generate_stream("system", "hỏi")) == "Câu trả lời theo tri thức."
 
         os.environ["GROQ_API_KEY"] = "test-groq-key"
+        os.environ.pop("GROQ_MODEL", None)
         groq = GroqProvider()
+        assert groq.model == "openai/gpt-oss-20b"
         llm.urlopen = lambda *a, **k: _FakeResponse(
             body=json.dumps({"choices": [{"message": {"content": "Groq answer"}}]}).encode()
         )
@@ -115,7 +118,7 @@ def run_llm_provider_test() -> None:
         os.environ["GEMINI_API_KEY"] = "test-gemini-key"
         os.environ.pop("GEMINI_MODEL", None)
         gemini = GeminiProvider()
-        assert gemini.model == "gemini-2.5-flash"
+        assert gemini.model == "gemini-3.5-flash"
         gemini_response = {
             "candidates": [{"content": {"parts": [{"text": "Gemini answer"}]}}]
         }

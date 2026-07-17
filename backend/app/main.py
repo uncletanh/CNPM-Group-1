@@ -109,8 +109,8 @@ def health_check():
         "database_persistent": DATABASE_IS_PERSISTENT,
         "embedding_backend": get_embedding_collection_suffix(),
         "llm_provider": os.getenv("LLM_PROVIDER", "ollama"),
-        "groq_model": os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
-        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+        "groq_model": os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),
+        "gemini_model": os.getenv("GEMINI_MODEL", "gemini-3.5-flash"),
     }
 
 

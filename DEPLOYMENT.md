@@ -24,7 +24,7 @@ Sao chép `backend/.env.example` và thay toàn bộ giá trị production.
 | `LLM_PROVIDER` | Có | Production khuyến nghị `auto` với `LLM_FALLBACK_ORDER=groq,gemini` |
 | `OLLAMA_BASE_URL`, `OLLAMA_MODEL` | Nếu dùng Ollama | URL nội bộ và model local |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Nếu dùng Groq | Không commit API key |
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Nếu dùng Gemini | Không commit API key; model stable mặc định `gemini-2.5-flash` |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Nếu dùng Gemini | Không commit API key; model stable mặc định `gemini-3.5-flash` |
 | `REDIS_URL` | Khi scale | Bắt buộc khi có nhiều backend instance |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Nếu dùng SSO | Callback là `/api/v1/auth/google/callback` |
 | `EMBEDDING_PROVIDER` | Có | Đặt `gemini` trên production |
