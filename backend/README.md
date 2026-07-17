@@ -23,8 +23,8 @@ Các biến quan trọng:
 | `LLM_FALLBACK_ORDER` | Thứ tự provider khi dùng `auto`, mặc định `ollama,groq,gemini` |
 | `OLLAMA_BASE_URL` | Mặc định `http://localhost:11434` |
 | `OLLAMA_MODEL` | Mặc định `qwen2.5:3b` |
-| `GROQ_API_KEY`, `GROQ_MODEL` | Bật Groq cloud, mặc định `llama-3.1-8b-instant` |
-| `GEMINI_API_KEY`, `GEMINI_MODEL` | Bật Gemini cloud, mặc định stable `gemini-2.5-flash` |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Bật Groq cloud, mặc định `openai/gpt-oss-20b` |
+| `GEMINI_API_KEY`, `GEMINI_MODEL` | Bật Gemini cloud, mặc định stable `gemini-3.5-flash` |
 | `REDIS_URL` | Lock takeover và Pub/Sub nhiều instance; để trống khi chạy local một instance |
 | `EMBEDDING_PROVIDER` | `gemini`, `local` hoặc `auto`; production dùng `gemini` |
 | `GEMINI_EMBEDDING_MODEL` | Mặc định `gemini-embedding-001` |

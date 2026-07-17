@@ -118,7 +118,7 @@ class GroqProvider:
         if not self.api_key:
             raise LLMProviderError("GROQ_API_KEY chưa được cấu hình.")
         self.base_url = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
-        self.model = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+        self.model = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
         self.timeout = int(os.getenv("GROQ_TIMEOUT_SECONDS", "60"))
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
@@ -182,7 +182,7 @@ class GeminiProvider:
         self.base_url = os.getenv(
             "GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta"
         ).rstrip("/")
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+        self.model = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
         self.timeout = int(os.getenv("GEMINI_TIMEOUT_SECONDS", "60"))
 
     def generate(self, system_prompt: str, user_prompt: str) -> str:
