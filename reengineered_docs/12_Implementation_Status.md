@@ -30,7 +30,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 
 - Chat response thường và POST SSE streaming.
 - Ollama, Groq và Gemini provider; hỗ trợ chọn trực tiếp hoặc fallback `auto`.
-- Top-K 1–5, `RAG_MAX_DISTANCE=1.2` mặc định.
+- Top-K 1–5, `RAG_MAX_DISTANCE=1.5` mặc định.
 - Lọc một số mẫu prompt injection ở question/chunk.
 - Tối đa 10 tin nhắn gần nhất trong conversation context.
 - Không đủ context sẽ không gọi LLM và chuyển sang handoff.
@@ -106,7 +106,7 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 
 ## Giới hạn cần hiểu đúng
 
-- `RAG_MAX_DISTANCE=1.2` là mặc định kỹ thuật, không bảo đảm chất lượng mọi dữ liệu.
+- `RAG_MAX_DISTANCE=1.5` là mặc định kỹ thuật, không bảo đảm chất lượng mọi dữ liệu.
 - Regex prompt injection chỉ là một lớp bảo vệ, không phải sandbox hoàn chỉnh.
 - Origin check không ngăn client ngoài browser giả mạo; widget token là credential public có phạm vi hẹp.
 - Không Redis: realtime/lock chỉ an toàn trong một process.

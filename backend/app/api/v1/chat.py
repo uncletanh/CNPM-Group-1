@@ -76,7 +76,7 @@ HANDOFF_TIMEOUT_MESSAGE = (
     "bạn có thể tiếp tục để lại nội dung cần hỗ trợ tại đây."
 )
 HANDOFF_TIMEOUT_SECONDS = int(os.getenv("HUMAN_HANDOFF_TIMEOUT_SECONDS", "60"))
-RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "1.2"))
+RAG_MAX_DISTANCE = float(os.getenv("RAG_MAX_DISTANCE", "1.5"))
 CHAT_HISTORY_LIMIT = int(os.getenv("CHAT_HISTORY_LIMIT", "10"))
 PROMPT_INJECTION_PATTERNS = (
     r"\b(ignore|disregard|forget)\b.{0,40}\b(instruction|prompt|rule)s?\b",
