@@ -43,7 +43,7 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 4. Deploy backend và kiểm tra `GET /health`.
 5. Kiểm tra `/metrics` trong mạng monitoring; endpoint này chưa có auth riêng.
 6. Build/deploy dashboard với đúng `VITE_API_URL`.
-7. Build widget, phát hành `script.umd.cjs` và `script.css` lên CDN.
+7. Build widget, phát hành `script.umd.cjs` (CSS đã được nhúng thẳng vào file này, không có `script.css` riêng) lên CDN hoặc cùng origin với dashboard.
 8. Smoke test đăng nhập, upload tài liệu, Test Bot, SSE, handoff và WebSocket.
 
 ## Staging

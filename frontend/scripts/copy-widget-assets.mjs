@@ -12,10 +12,12 @@ if (!existsSync(publicDir)) {
   mkdirSync(publicDir, { recursive: true });
 }
 
-for (const file of ["script.umd.cjs", "script.css"]) {
-  const source = resolve(widgetDist, file);
-  if (!existsSync(source)) {
-    throw new Error(`Khong tim thay ${file} trong widget/dist - hay build widget truoc.`);
-  }
-  copyFileSync(source, resolve(publicDir, file));
+// script.css duoc vite-plugin-css-injected-by-js nhung thang vao script.umd.cjs
+// luc build (widget/vite.config.ts) nen chi con 1 file can copy - khach hang
+// chi nhung dung 1 the <script>, khong can <link rel="stylesheet"> rieng.
+const file = "script.umd.cjs";
+const source = resolve(widgetDist, file);
+if (!existsSync(source)) {
+  throw new Error(`Khong tim thay ${file} trong widget/dist - hay build widget truoc.`);
 }
+copyFileSync(source, resolve(publicDir, file));
