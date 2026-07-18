@@ -804,15 +804,22 @@ def widget_poll(
     verify_chat_access(workspace, db, bearer_token, x_widget_token, origin)
     session = get_session_by_key(db, workspace_id, session_key)
 
-    if (
+    handoff_timed_out = (
         session.status == STATUS_WAITING_HUMAN
         and session.handoff_requested_at is not None
-        and session.fallback_sent_at is None
         and datetime.utcnow() - session.handoff_requested_at
         >= timedelta(seconds=HANDOFF_TIMEOUT_SECONDS)
-    ):
-        save_message(db, session, "system", HANDOFF_TIMEOUT_MESSAGE)
-        session.fallback_sent_at = datetime.utcnow()
+    )
+    if handoff_timed_out:
+        # Tach rieng "gui tin nhan 1 lan" (theo fallback_sent_at) voi "tra ve
+        # bot_handling" (luon lam, khong dieu kien theo fallback_sent_at) -
+        # phien nao bi ket dinh o waiting_human tu truoc khi fix nay ton tai
+        # (fallback_sent_at da duoc set boi code cu nhung status chua bao gio
+        # duoc tra lai) van duoc tu chua lanh ngay lan poll ke tiep, khong
+        # can can thiep tay vao DB.
+        if session.fallback_sent_at is None:
+            save_message(db, session, "system", HANDOFF_TIMEOUT_MESSAGE)
+            session.fallback_sent_at = datetime.utcnow()
         session.status = STATUS_BOT_HANDLING
         session.updated_at = datetime.utcnow()
         db.commit()

@@ -172,6 +172,30 @@ def run_phase4_test() -> None:
         assert timeout_session.status == "bot_handling"
         assert timeout_session.fallback_sent_at is not None
 
+        # Tu chua lanh: phien da bi ket dinh o waiting_human TU TRUOC (vi du
+        # tao boi code cu, fallback_sent_at da duoc set nhung status chua bao
+        # gio duoc tra lai) van phai duoc tra ve bot_handling ngay lan poll
+        # ke tiep, khong dieu kien theo fallback_sent_at.
+        stuck_session = ChatSession(
+            workspace_id=workspace.id,
+            status="waiting_human",
+            handoff_requested_at=datetime.utcnow() - timedelta(hours=1),
+            fallback_sent_at=datetime.utcnow() - timedelta(minutes=55),
+        )
+        db.add(stuck_session)
+        db.commit()
+        db.refresh(stuck_session)
+
+        poll_stuck = client.get(
+            f"/api/v1/chat/{workspace.id}/poll",
+            params={"session_key": stuck_session.session_key, "after": 0},
+            headers=widget_headers,
+        )
+        assert poll_stuck.status_code == 200, poll_stuck.text
+        assert poll_stuck.json()["status"] == "bot_handling"
+        db.refresh(stuck_session)
+        assert stuck_session.status == "bot_handling"
+
         print("[SUCCESS] Phase 4 handoff, guardrails, history and citations test passed.")
     finally:
         for session in db.query(ChatSession).filter(ChatSession.workspace_id == workspace.id).all():
