@@ -217,16 +217,23 @@ def read_workspaces(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Dung subquery thay vi outerjoin+distinct: outerjoin theo workspace_id se
+    # nhan ban (fan-out) mot workspace ra nhieu dong neu workspace do co nhieu
+    # thanh vien khac, va DISTINCT tren toan bo cot (bao gom allowed_domains
+    # kieu JSON) se loi tren Postgres ("could not identify an equality
+    # operator for type json"). Subquery/IN tranh ca hai van de vi khong join
+    # WorkspaceMember vao SELECT chinh.
+    member_workspace_ids = db.query(WorkspaceMember.workspace_id).filter(
+        WorkspaceMember.user_id == current_user.id
+    )
     return (
         db.query(Workspace)
-        .outerjoin(WorkspaceMember, WorkspaceMember.workspace_id == Workspace.id)
         .filter(
             or_(
                 Workspace.owner_id == current_user.id,
-                WorkspaceMember.user_id == current_user.id,
+                Workspace.id.in_(member_workspace_ids),
             )
         )
-        .distinct()
         .all()
     )
 
