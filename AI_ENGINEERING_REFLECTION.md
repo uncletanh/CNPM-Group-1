@@ -51,7 +51,7 @@ miễn trừ** nhóm khỏi trách nhiệm hiểu code — mục 4 nói rõ vì 
 
 ---
 
-## 3. Ba lần AI "vấp" thật — và điều nhóm học được
+## 3. Bốn lần AI "vấp" thật — và điều nhóm học được
 
 ### 3.1 Lỗi bị bắt sớm, trong lúc phát triển (đã ghi trong `PROMPTS.md`)
 - Quên filter `workspace_id` khi truy hồi vector → có thể lộ dữ liệu chéo giữa hai khách hàng.
@@ -92,6 +92,41 @@ của bản thân cách triển khai fix quan trọng hơn mức độ "đúng" 
 pháp đơn giản, ít rủi ro, phục hồi dịch vụ ngay luôn tốt hơn một giải pháp "đúng hơn" nhưng có
 thêm một điểm có thể fail mà không kiểm chứng được trước.
 
+### 3.4 Verify sau khi fix xong vẫn chưa chắc đã xong: bài toán "trạng thái cũ đã hỏng"
+
+Khách báo nút "Gặp nhân viên" trên widget không quay lại sau khi hết giờ chờ mà không có nhân
+viên tiếp nhận. Đọc code phát hiện đúng nguyên nhân: khi hết giờ, backend gửi tin nhắn "chưa có
+nhân viên trực tuyến" nhưng **quên đổi `session.status` về lại `bot_handling`** — điều kiện hiển
+thị nút chỉ đúng khi `status === "bot_handling"`, nên nút bị ẩn vĩnh viễn. Sửa (PR #60), viết
+test, verify **trực tiếp trên production**: gọi API thật, chờ đủ 65 giây, xác nhận response trả
+đúng `status: "bot_handling"` — mọi bằng chứng đều nói fix đã đúng và đã chạy.
+
+Khách vẫn báo lại: nút chưa quay về. Vấn đề không nằm ở logic mới, mà ở **dữ liệu cũ**: phiên
+khách đang test đã bị kẹt ở `waiting_human` từ *trước khi* PR #60 kịp lên production — code cũ
+đã set một cờ đánh dấu "đã gửi tin nhắn fallback" nhưng chưa bao giờ trả `status` lại, và điều
+kiện trong fix mới lại **dựa vào chính cờ đó** để quyết định có chạy hay không, nên vô tình bỏ
+qua đúng những phiên đã bị hỏng từ trước — nhóm đối tượng lẽ ra fix này phải chữa cho. Sửa lần 2
+(PR #61): tách "gửi tin nhắn 1 lần" (vẫn theo cờ cũ, tránh gửi trùng) khỏi "trả `status` về
+`bot_handling`" (bỏ điều kiện theo cờ, luôn chạy khi đã quá giờ) — nhờ vậy phiên nào đã kẹt từ
+trước cũng tự lành ngay ở lần gọi tiếp theo, không cần sửa tay dữ liệu production.
+
+**Bài học:** verify một fix trên production bằng dữ liệu thật là điều kiện cần, nhưng chưa đủ
+nếu chỉ kiểm tra **kịch bản xảy ra sau khi fix đã tồn tại**. Một lỗi từng chạy sai trong quá khứ
+thường để lại **trạng thái dữ liệu đã hỏng** không tự biến mất khi deploy code mới — nhất là khi
+logic sửa lỗi lại tình cờ dùng chính dấu vết mà lỗi cũ để lại làm điều kiện. Từ lần này, nhóm
+thêm một câu hỏi bắt buộc khi review fix cho lỗi đã từng chạy trên production: *"nếu lỗi này đã
+xảy ra trước khi tôi vá, dữ liệu bị ảnh hưởng có tự phục hồi được không, hay cần một đường riêng
+để chữa cho cả các bản ghi cũ?"*
+
+*(Một lỗi nhỏ hơn cùng đợt, đáng ghi lại vì lý do khác: widget nhúng không dùng Shadow DOM/iframe
+— chủ đích, để nhẹ và tương thích rộng nhất — nên nội dung bot render qua `ReactMarkdown` ra thẻ
+HTML thường có thể bị CSS toàn cục của **trang khách** (không phải trang của nhóm) đè lên, khiến
+chữ bot hiện to hơn hẳn chữ khách trên một site có typography riêng. Không có cách nào lường hết
+CSS của mọi trang khách tương lai, nên nhóm chọn tự vệ bằng `!important` scope theo ID gốc của
+widget — kỹ thuật các widget nhúng thật như Intercom/Crisp/Drift đều dùng, thừa nhận rằng "không
+kiểm soát được môi trường mình chạy trong" là một ràng buộc cố định của mọi widget nhúng, không
+phải một trường hợp ngoại lệ hiếm gặp.)*
+
 ---
 
 ## 4. Nhóm có thực sự làm chủ code AI viết không?
@@ -117,3 +152,7 @@ thật nói không biết phần người khác"* tốt hơn nhiều so với tr
    án "đúng nhất về lý thuyết" — có thể tối ưu lại sau khi dịch vụ đã ổn định.
 5. **AI là thành viên phải giám sát, không phải người thay thế trách nhiệm** — mọi merge vẫn
    là quyết định của người, mọi lỗi AI gây ra vẫn là lỗi nhóm phải giải trình được khi vấn đáp.
+6. **Khi vá một lỗi đã từng chạy sai trên production, phải tự hỏi dữ liệu/trạng thái cũ có tự
+   phục hồi không** — verify chỉ bằng kịch bản mới (xảy ra sau khi fix tồn tại) có thể bỏ sót
+   đúng những bản ghi đã bị lỗi cũ làm hỏng từ trước, khiến người dùng vẫn thấy lỗi dù fix đã
+   đúng và đã lên production.

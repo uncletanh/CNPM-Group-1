@@ -32,4 +32,4 @@
 
 ## Persona vận hành bổ sung
 
-**System Operator** quản lý PostgreSQL, Redis, Ollama, Chroma persistence, secrets, migration và monitoring. Persona này chưa có giao diện vận hành riêng; các tác vụ hiện thực hiện qua hạ tầng và biến môi trường.
+**System Operator** quản lý PostgreSQL, Redis, Ollama, secrets, migration và monitoring. Persona này chưa có giao diện vận hành riêng; các tác vụ hiện thực hiện qua hạ tầng và biến môi trường.

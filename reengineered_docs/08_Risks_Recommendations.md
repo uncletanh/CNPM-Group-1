@@ -4,8 +4,13 @@
 
 ### Handoff không có Agent nhận
 
-- **Đã có:** trạng thái `waiting_human`, system fallback sau 60 giây, WebSocket và poll.
-- **Còn lại:** task chạy trong process có thể mất khi restart. Poll chỉ bù khi widget tiếp tục gọi.
+- **Đã có:** trạng thái `waiting_human`, system fallback sau 60 giây (WebSocket + poll), và
+  session tự trả về `bot_handling` sau fallback — kể cả phiên đã bị kẹt ở `waiting_human` từ
+  trước khi cơ chế tự trả tồn tại (self-heal không điều kiện theo cờ "đã gửi fallback", xem
+  `AI_ENGINEERING_REFLECTION.md` mục 3.4).
+- **Còn lại:** task chạy trong process có thể mất khi restart (chỉ nhánh WebSocket; nhánh poll
+  vẫn tự bù vì kiểm tra lại timeout mỗi lần gọi). Poll chỉ bù khi widget tiếp tục gọi (widget
+  đóng hoàn toàn thì không có gì trigger cho tới khi mở lại).
 - **Khuyến nghị:** chuyển timeout sang durable job queue và đo handoff wait time.
 
 ### Hai Agent takeover cùng lúc
@@ -22,17 +27,31 @@
 
 ### Cross-tenant data leak
 
-- **Đã có:** workspace authorization trong SQL và collection Chroma riêng.
-- **Còn lại:** widget token là public credential nằm trong script; origin chỉ là lớp bổ sung và có thể giả mạo ngoài browser.
+- **Đã có:** workspace authorization trong SQL, và embedding tri thức lưu trong Postgres luôn
+  lọc theo `workspace_id` ngay trong câu query truy hồi (không có tầng vector DB tách biệt cần
+  đồng bộ theo, nên không có nguy cơ "quên filter ở tầng khác").
+- **Còn lại:** widget token là public credential nằm trong script; `allowed_domains` (Origin
+  header) chỉ là lớp bổ sung và có thể giả mạo ngoài browser.
 - **Khuyến nghị:** rotation token, audit log, quota/rate limit và security test tenant isolation.
 
 ## Rủi ro còn mở
 
-### ChromaDB local khi scale ngang
+### Widget bị ảnh hưởng bởi CSS của trang host
 
-Mỗi backend instance dùng filesystem riêng sẽ thấy vector data khác nhau.
+Widget không dùng Shadow DOM/iframe (chủ đích, nhẹ + tương thích rộng), nên nội dung bot render
+qua `ReactMarkdown` ra thẻ HTML thường (`<p>/<li>/<h1-6>`) có thể bị CSS toàn cục của trang host
+đè lên — đã gặp thật trên một site khách có typography riêng cho đọc thơ.
 
-**Khuyến nghị:** dùng Chroma server/shared persistent volume có semantics rõ ràng hoặc chọn managed vector database trước khi scale.
+**Đã giảm nhẹ:** CSS scope theo `#novachat-widget-root` với `!important` cho các thẻ markdown.
+**Còn lại:** đây là giảm nhẹ theo từng loại thẻ đã biết, không phải cách ly tuyệt đối — một CSS
+host đủ lạ (ví dụ `!important` trùng, hoặc target qua thuộc tính khác ngoài thẻ/class) vẫn có
+thể xuyên qua.
+
+**Khuyến nghị:** nếu gặp lại, kiểm tra bằng cách tải thử HTML/CSS thật của site khách trước khi
+đoán nguyên nhân — lưu ý riêng: đơn vị `rem` trong CSS luôn tính theo font-size của `<html>` của
+toàn bộ document theo spec, nên kể cả đặt widget trong Shadow DOM cũng **không** tự cách ly được
+kích thước tính bằng `rem`; phải chủ động đổi sang đơn vị `px`/`em` có mốc cục bộ riêng nếu muốn
+cách ly thật.
 
 ### Ingestion đồng bộ
 
@@ -68,4 +87,4 @@ Runtime vẫn gọi `create_all()` và `ensure_*_schema()` để hỗ trợ data
 
 ## Kết luận
 
-Kiến trúc hiện tại phù hợp MVP và học tập, nhưng chưa nên gọi là enterprise-grade trước khi hoàn thiện persistent vector architecture, durable jobs, distributed rate limit, E2E/security/load test và vận hành production có monitoring/backup.
+Kiến trúc hiện tại phù hợp MVP và học tập, nhưng chưa nên gọi là enterprise-grade trước khi hoàn thiện durable jobs, distributed rate limit, E2E/security/load test và vận hành production có monitoring/backup.

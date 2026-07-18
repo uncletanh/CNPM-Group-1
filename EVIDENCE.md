@@ -17,9 +17,9 @@ Name                              Stmts   Miss  Cover
 app\api\deps.py                      30      5    83%
 app\api\v1\admin.py                  52      4    92%
 app\api\v1\auth.py                   66     26    61%
-app\api\v1\chat.py                  380    115    70%
+app\api\v1\chat.py                  386    113    71%
 app\api\v1\users.py                  27      0   100%
-app\api\v1\workspaces.py            260     95    63%
+app\api\v1\workspaces.py            260     93    64%
 app\core\security.py                 22      1    95%
 app\db\session.py                    73     24    67%
 app\main.py                          70     22    69%
@@ -41,8 +41,11 @@ app\services\observability.py        63     10    84%
 app\services\realtime.py            102     57    44%
 app\services\retrieval.py            86      1    99%
 ---------------------------------------------------------------
-TOTAL                              1900    425    78%
+TOTAL                              1906    421    78%
 ```
+
+*(Số liệu lấy lại ngày 18-19/07/2026 sau đợt vá lỗi widget UI + human-handoff cuối cùng — `chat.py`
+tăng nhẹ 69%→71% nhờ test regression mới cho fallback timeout/self-heal, tổng vẫn giữ 78%.)*
 
 **Điểm nhấn khi trình bày:** tất cả model/schema mới cho Freemium/License Key (`models/license.py`,
 `schemas/license.py`, `services/monetization.py`) đạt 92–100% — vì được viết kèm test ngay từ đầu
@@ -72,6 +75,11 @@ mức High = 0 nghĩa là gate CI pass.
 
 | PR | Nội dung | Thời điểm merge | CI |
 |---|---|---|---|
+| #61 | Fix session cách self-heal — phiên bị kẹt ở `waiting_human` *trước* khi PR #60 lên production vẫn tự khỏi ở lần poll kế tiếp | 2026-07-18 19:20 | ✅ success |
+| #60 | Fix widget kẹt ở "Đang tìm nhân viên": trả `status` về `bot_handling` sau khi hết giờ chờ nhân viên | 2026-07-18 19:03 | ✅ success |
+| #59 | Widget: thu nhỏ khung chat (380→340px) + chống CSS host đè chữ bot to hơn chữ khách (`!important` scope) | 2026-07-18 18:40 | ✅ success |
+| #58 | Widget: mở khung chat, giảm cỡ chữ, đổi input→textarea để xuống dòng khi gõ dài | 2026-07-18 18:20 | ✅ success |
+| #57 | Cập nhật tài liệu bảo vệ (`FINAL_REPORT.md`, `AI_ENGINEERING_REFLECTION.md`, `EVIDENCE.md`, `DEMO_SCRIPT.md`) | 2026-07-18 16:20 | ✅ success |
 | #56 | Fix `GET /workspaces/` 500 trên production (bản sửa an toàn, không migration) | 2026-07-18 15:52 | ✅ success |
 | #55 | Fix `GET /workspaces/` 500 (bản đầu — migration JSONB, tự deploy fail trên Render) | 2026-07-18 15:22 | ✅ success (deploy Render fail riêng, không phải CI) |
 | #54 | Widget `script.umd.cjs` tự nhúng CSS | 2026-07-18 15:10 | ✅ success |
@@ -87,7 +95,7 @@ https://github.com/uncletanh/CNPM-Group-1/actions
 ## 4. GitHub Issues & Pull Requests
 
 - **25 Issues** — 100% đã đóng (`gh api repos/uncletanh/CNPM-Group-1/issues?state=all`).
-- **27 Pull Requests** — 26 merged, 1 closed không merge.
+- **32 Pull Requests** — 31 merged, 1 closed không merge (`gh pr list --state all`).
 - Board Kanban: https://github.com/uncletanh/CNPM-Group-1/projects (tự chụp màn hình trực tiếp
   vì cần đăng nhập để xem đúng layout — mình không có quyền truy cập giao diện này).
 

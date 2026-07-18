@@ -9,7 +9,7 @@
 5. Tài liệu xuất hiện trong danh sách; Admin có thể preview chunk/page.
 6. Admin mở **Test Bot** để hỏi thử trước khi nhúng.
 
-**Kết quả:** dữ liệu được lưu trong collection Chroma của workspace. Upload lại cùng filename thay thế chunk cũ.
+**Kết quả:** dữ liệu (nội dung + embedding) được lưu trong Postgres, gắn `workspace_id`. Upload lại cùng filename thay thế chunk cũ.
 
 **Giới hạn:** thời gian xử lý phụ thuộc kích thước file và model embedding; code không cam kết hoàn thành trong 30/60 giây.
 

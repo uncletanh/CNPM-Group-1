@@ -22,7 +22,7 @@ theo dõi hội thoại realtime, Human Takeover, Widget nhúng tùy biến.
 
 ### 1.3 Minh chứng Agile
 - **25 GitHub Issues** có acceptance criteria, gán nhãn `[Backend]/[Frontend]/[Lead]` theo Phase/Sprint — **100% đã đóng**.
-- **27 Pull Request** (26 đã merge vào `main`) qua feature branch riêng cho từng fix/feature, mỗi PR có
+- **32 Pull Request** (31 đã merge vào `main`) qua feature branch riêng cho từng fix/feature, mỗi PR có
   CI (test + coverage + SAST) chạy qua trước khi merge.
 - Quy trình **Pair Programming** (Driver/Navigator) theo `reengineered_docs/11_Task_Assignment.md`.
 - Giai đoạn cuối (persistence tri thức, RBAC, Freemium/License Key, vá lỗi production) được Lead
@@ -175,6 +175,24 @@ Postgres managed instance đã có (không thêm một hạ tầng cần vận h
     schema nên không thể fail ở bước migration nữa. Bài học: **một fix an toàn về mặt logic
     vẫn có thể mất tác dụng nếu cách triển khai (migration) rủi ro hơn bản thân lỗi** — và khi
     không có quyền xem log hạ tầng, ưu tiên phương án ít rủi ro nhất để khôi phục dịch vụ trước.
+  - **Widget bị "lây" CSS từ trang khách (host page):** sau khi widget đã hiện đúng trên site
+    demo thật, khách báo khung chat nhỏ hơn chữ, chữ bot to hơn hẳn chữ khách. Vì widget không
+    dùng Shadow DOM/iframe (chủ đích, để nhẹ và tương thích rộng), nội dung bot render qua
+    `ReactMarkdown` ra các thẻ HTML thường (`<p>/<li>/<h1-6>`) — nếu CSS toàn cục của trang host
+    (site đó có typography riêng cho đọc thơ) nhắm vào đúng các thẻ này, nó có thể đè lên class
+    Tailwind của widget. Sửa bằng CSS scope theo `#novachat-widget-root` với `!important` — kỹ
+    thuật chuẩn các widget nhúng thật (Intercom/Crisp/Drift) dùng để tự bảo vệ khỏi CSS không
+    kiểm soát được của host, đúng với lời hứa "dán vào là chạy y hệt mọi nơi".
+  - **Một fix đúng hướng nhưng sửa lỗi lại cần 2 lần:** khi khách bấm "Gặp nhân viên" mà hết giờ
+    chờ, backend gửi đúng tin nhắn "chưa có nhân viên" nhưng **quên đổi `session.status` về lại
+    `bot_handling`** — nút "Gặp nhân viên" bị ẩn vĩnh viễn. Lần sửa đầu (PR #60) đổi status đúng
+    hướng nhưng chỉ áp dụng cho phiên hết giờ **sau khi** fix lên production; verify thật cho
+    thấy nút vẫn không quay lại vì phiên khách đang test đã bị kẹt **từ trước** (điều kiện cũ
+    dựa vào một cờ đã bị code lỗi set từ trước, nên fix mới không bao giờ chạm tới). Lần sửa 2
+    (PR #61) tách riêng "gửi tin nhắn 1 lần" khỏi "trả status" để việc trả status **luôn** chạy
+    khi hết giờ, giúp cả phiên cũ bị kẹt cũng tự lành, không cần sửa tay dữ liệu production. Bài
+    học: **verify sau khi deploy không dừng ở "trường hợp mới" — phải nghĩ tới cả trạng thái cũ
+    đã bị hỏng từ trước khi fix tồn tại.**
   - Kết luận: AI tăng tốc rõ rệt nhưng **phải đọc diff, chạy test, và verify bằng dữ liệu thật
     (curl production, thực thi script trong jsdom) — không dừng ở "code trông đúng"**.
 
@@ -194,7 +212,10 @@ Postgres managed instance đã có (không thêm một hạ tầng cần vận h
 6. **AI đã tạo lỗi gì?** Quên filter workspace_id; hardcode localhost; test phụ thuộc Redis; thêm
    cột Postgres kiểu `json` khiến `SELECT DISTINCT` lỗi 500 trên production (không lỗi ở local
    SQLite); lần sửa đầu (migration ALTER cột) tự nó deploy fail trên Render, chặn luôn các deploy
-   sau — phải đổi sang fix không cần đổi schema. Chi tiết đầy đủ ở mục 4.
+   sau — phải đổi sang fix không cần đổi schema; quên đổi `session.status` về lại `bot_handling`
+   sau khi hết giờ chờ nhân viên (nút "Gặp nhân viên" bị ẩn vĩnh viễn), và lần sửa đầu chỉ áp
+   dụng cho phiên mới, phải sửa lần 2 để tự chữa cả phiên cũ đã bị kẹt từ trước. Chi tiết đầy đủ
+   ở mục 4.
 7. **Phát hiện lỗi bằng cách nào?** Đọc diff trong PR, chạy test tay, chạy CI, test cách ly 2
    workspace; với lỗi production: gọi thật API bằng `curl` (tạo tài khoản mới, gọi endpoint lỗi)
    để xác nhận đúng nguyên nhân trước khi sửa, không đoán; với lỗi widget: thực thi script build
@@ -222,6 +243,7 @@ Postgres managed instance đã có (không thêm một hạ tầng cần vận h
 - [x] **Deploy thật, có link live:** backend `cnpm-group-1.onrender.com`, dashboard `cnpm-group-1.vercel.app` — đã demo thử API thật trên production, không phải localhost.
 - [x] **Persistence tri thức** (bug nặng nhất phát hiện sau khi deploy: tri thức mất khi Render restart do ChromaDB dùng filesystem tạm) — đã fix, verify bằng cách restart server thật và xác nhận dữ liệu còn.
 - [x] **Vá lỗi 500 phát hiện ngay trước ngày bảo vệ** trên `GET /workspaces/` (Postgres + cột JSON) — verify lại bằng `curl` thật trên production, không chỉ tin CI xanh.
+- [x] **Vá lỗi UI widget + Human Handoff phát hiện qua test thật trên site khách** (khung/chữ widget bị host CSS ảnh hưởng, nút "Gặp nhân viên" kẹt vĩnh viễn sau khi hết giờ chờ) — verify lại bằng `curl` thật + chờ đủ giờ timeout trên production, không chỉ tin CI xanh.
 - [ ] Đồng bộ slide (12–15 trang) với code thật (Freemium/License Key, RBAC 2 tầng, không còn ChromaDB) và luyện vấn đáp cá nhân — **mỗi thành viên ôn đúng phần mình đã làm**, không cần biết hết toàn bộ hệ thống.
 - [ ] Diễn tập lại đúng 3 kịch bản BDD ở mục 1.4 **trên link cloud thật** trước giờ bảo vệ, tránh lỗi bất ngờ khi demo trực tiếp.
 

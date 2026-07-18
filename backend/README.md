@@ -63,10 +63,19 @@ python -m uvicorn app.main:app --reload
 
 - `/api/v1/auth`: đăng ký, đăng nhập, Google OAuth.
 - `/api/v1/users`: tài khoản hiện tại, đổi mật khẩu, danh sách user dành cho global admin.
-- `/api/v1/workspaces`: workspace, prompt, widget settings, thành viên, lời mời và Knowledge Base.
-- `/api/v1/chat`: chat thường/SSE, lịch sử, poll, thống kê, handoff và WebSocket.
+- `/api/v1/workspaces`: workspace, prompt, widget settings, thành viên (kể cả đổi role qua
+  `PUT /{id}/members/{user_id}/role`), lời mời và Knowledge Base.
+- `/api/v1/chat`: chat thường/SSE, lịch sử, poll, thống kê, handoff, kích hoạt License Key và WebSocket.
+- `/api/v1/admin`: Admin Dashboard — quản lý License Key, đổi plan `FREE`/`PRO`, tạo tài khoản
+  Staff; chỉ role toàn cục `ADMIN` (enforce bằng `require_role`, `api/deps.py`).
 
-Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin`, backend kiểm tra header `Origin`. Dashboard dùng JWT Bearer.
+Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_domains`, backend kiểm tra
+header `Origin` khớp một trong các domain đã lưu. Dashboard dùng JWT Bearer.
+
+RBAC có **2 tầng độc lập**: `WorkspaceMember.role` (`admin`/`agent`, theo từng workspace) quyết
+định ai sửa được cấu hình/thành viên/tri thức của workspace đó; `User.role`
+(`USER`/`STAFF`/`ADMIN`, toàn cục) quyết định ai vào được `/api/v1/admin`. Hai tầng không giao
+nhau — một user có thể là `agent` ở workspace này nhưng `ADMIN` toàn cục.
 
 ## Knowledge Base và RAG
 
@@ -89,7 +98,18 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 - Redis Pub/Sub đồng bộ nhiều backend instance.
 - Redis lock và cập nhật SQL có điều kiện chống hai Agent tiếp quản cùng lúc.
 - Không có Redis sẽ dùng lock nội bộ một process.
-- Fallback sau 60 giây được lập lịch trong process và được kiểm tra lại ở endpoint poll.
+- Fallback sau 60 giây được lập lịch trong process (WebSocket) và được kiểm tra lại ở endpoint
+  poll. Cả hai nhánh trả `status` về lại `bot_handling` sau khi gửi fallback — không điều kiện
+  theo cờ "đã gửi fallback", nên một session bị kẹt ở `waiting_human` từ trước khi cơ chế này
+  tồn tại cũng tự lành ở lần poll kế tiếp.
+
+## Freemium & License Key
+
+- `User.plan` (`FREE`/`PRO`); workspace FREE giới hạn 50 tin/tháng (`message_count`/
+  `message_count_period`) và `/widget-config` trả `watermark: true`.
+- `LicenseKey` sinh bằng `secrets` (CSPRNG, định dạng `NOVA-XXXX-XXXX-XXXX-XXXX`); xác thực chỉ
+  đối chiếu DB, không suy luận từ format chuỗi.
+- Endpoint kích hoạt rate-limit 5 lần/phút/user (sliding window) chống brute-force đoán mã.
 
 ## Kiểm thử
 
@@ -102,7 +122,8 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 .\venv\Scripts\python.exe test_auth_users.py
 .\venv\Scripts\python.exe test_llm_provider.py
 .\venv\Scripts\python.exe test_workspace_crud.py
-.\venv\Scripts\python.exe -m pytest test_embeddings.py
+.\venv\Scripts\python.exe test_licensing.py
+.\venv\Scripts\python.exe -m pytest test_embeddings.py test_retrieval.py
 ```
 
-Trong CI, bảy script chính và unit test embedding được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70%. Bandit cũng quét thư mục `app` với ngưỡng severity `high`.
+Trong CI, tám script chính và unit test embedding/retrieval được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70% (thực tế 78%). Bandit cũng quét thư mục `app` với ngưỡng severity `high` (thực tế 0 High).
