@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -146,6 +147,31 @@ def run_phase4_test() -> None:
                 done_payload = json.loads(data_line[6:])
         assert done_payload["sources"][0]["source_filename"] == "bao-hanh.pdf"
         assert done_payload["sources"][0]["page"] == 2
+
+        # Khi het thoi gian cho ma khong co nhan vien tiep quan, phien phai
+        # tra ve trang thai bot_handling (khong con ket dinh o waiting_human)
+        # de widget hien lai nut "Gap nhan vien" va tro chuyen tiep voi bot.
+        timeout_session = ChatSession(
+            workspace_id=workspace.id,
+            status="waiting_human",
+            handoff_requested_at=datetime.utcnow() - timedelta(hours=1),
+            fallback_sent_at=None,
+        )
+        db.add(timeout_session)
+        db.commit()
+        db.refresh(timeout_session)
+
+        poll_after_timeout = client.get(
+            f"/api/v1/chat/{workspace.id}/poll",
+            params={"session_key": timeout_session.session_key, "after": 0},
+            headers=widget_headers,
+        )
+        assert poll_after_timeout.status_code == 200, poll_after_timeout.text
+        assert poll_after_timeout.json()["status"] == "bot_handling"
+        db.refresh(timeout_session)
+        assert timeout_session.status == "bot_handling"
+        assert timeout_session.fallback_sent_at is not None
+
         print("[SUCCESS] Phase 4 handoff, guardrails, history and citations test passed.")
     finally:
         for session in db.query(ChatSession).filter(ChatSession.workspace_id == workspace.id).all():

@@ -203,6 +203,8 @@ async def schedule_handoff_fallback(workspace_id: int, session_id: int) -> None:
             return
         message = save_message(db, session, "system", HANDOFF_TIMEOUT_MESSAGE)
         session.fallback_sent_at = datetime.utcnow()
+        session.status = STATUS_BOT_HANDLING
+        session.updated_at = datetime.utcnow()
         db.commit()
         await realtime_manager.notify_widget(
             workspace_id,
@@ -811,6 +813,8 @@ def widget_poll(
     ):
         save_message(db, session, "system", HANDOFF_TIMEOUT_MESSAGE)
         session.fallback_sent_at = datetime.utcnow()
+        session.status = STATUS_BOT_HANDLING
+        session.updated_at = datetime.utcnow()
         db.commit()
         db.refresh(session)
 
