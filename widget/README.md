@@ -62,3 +62,19 @@ Màn hình **Cấu hình Bot AI** sinh snippet với `src` lấy từ `window.lo
 - Trích dẫn tên tài liệu/trang khi RAG có nguồn.
 
 Widget chưa có upload avatar, offline queue hoặc Service Worker.
+
+## Cách ly CSS khỏi trang host
+
+Widget **không** dùng Shadow DOM/iframe (chủ đích, để nhẹ và tương thích rộng nhất — DOM mount
+vào một `<div id="novachat-widget-root">` là sibling độc lập của `<body>`, xem `src/main.tsx`).
+Hệ quả: nội dung bot render qua `ReactMarkdown` ra thẻ HTML thường (`<p>/<li>/<h1-6>`) có thể bị
+CSS toàn cục của trang host nhắm trúng và đè lên class Tailwind của widget (đã gặp thật trên một
+site khách có typography riêng). `src/index.css` có một khối CSS scope theo
+`#novachat-widget-root` với `!important` cho các thẻ này để đảm bảo cỡ chữ luôn khớp thiết kế,
+bất kể CSS trang host là gì — sửa cỡ chữ nội dung bot thì sửa ở khối này, không phải class
+Tailwind trên `App.tsx`.
+
+Khung chat cố định `w-[340px] h-[480px]` (px, không dùng `rem`, nên không bị ảnh hưởng nếu trang
+host đổi root font-size). Ô nhập là `<textarea>` tự phình cao tối đa `120px` (không phải
+`<input>` — input không thể xuống dòng theo spec HTML khi gõ dài), Enter gửi/Shift+Enter xuống
+dòng qua `form.requestSubmit()`.

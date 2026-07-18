@@ -2,14 +2,15 @@
 
 NovaChat AI là nền tảng chatbot RAG dành cho doanh nghiệp SME. Hệ thống kết hợp kho tri thức riêng theo workspace, LLM local/cloud, widget nhúng website và quy trình Human Handoff để nhân viên tiếp quản hội thoại khi AI không đủ độ tin cậy.
 
-Ngày đồng bộ tài liệu: **18/07/2026**.
+Ngày đồng bộ tài liệu: **19/07/2026**.
 
 ## Trạng thái hiện tại
 
 Các luồng chính đã có trong code:
 
 - Đăng ký, đăng nhập email/mật khẩu, JWT và Google SSO khi có credentials.
-- Workspace đa tenant, thành viên `admin`/`agent` và lời mời bằng liên kết.
+- Workspace đa tenant, thành viên `admin`/`agent` (đổi được sau khi đã tham gia) và lời mời bằng liên kết.
+- Freemium (hạn mức 50 tin/tháng, watermark) và License Key nâng cấp PRO; Admin Dashboard riêng theo role toàn cục `USER`/`STAFF`/`ADMIN` (độc lập với role theo workspace).
 - Knowledge Base cho PDF, TXT, DOCX và nội dung nhập trực tiếp; có danh sách, preview, sửa text, xóa và thay thế tài liệu trùng tên.
 - RAG dùng Gemini Embedding 768 chiều kết hợp BM25 local, hybrid rerank, ngưỡng confidence, lọc prompt injection và 10 tin nhắn gần nhất.
 - Ollama, Groq hoặc Gemini trả lời thường/streaming; chế độ `auto` fallback theo provider đã cấu hình.
@@ -122,6 +123,7 @@ cd backend
 .\venv\Scripts\python.exe test_auth_users.py
 .\venv\Scripts\python.exe test_llm_provider.py
 .\venv\Scripts\python.exe test_workspace_crud.py
+.\venv\Scripts\python.exe test_licensing.py
 ```
 
 ```powershell

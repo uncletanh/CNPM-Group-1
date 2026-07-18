@@ -1,6 +1,6 @@
 # NovaChat AI - Test Cases Knowledge Base và System Prompt
 
-Tài liệu ban đầu phục vụ Phase 2 (#21–#24), nay đã được cập nhật theo code tại ngày **15/07/2026** và dùng như bộ regression test cho Knowledge Base.
+Tài liệu ban đầu phục vụ Phase 2 (#21–#24), nay đã được cập nhật theo code tại ngày **19/07/2026** và dùng như bộ regression test cho Knowledge Base.
 
 ## Phạm vi
 
@@ -90,7 +90,7 @@ Chunking hiện dùng `chunk_size=1000`, `chunk_overlap=200`; embedding dùng `a
 | KB-MGMT-03 | `POST /workspaces/{id}/knowledge/text` | Tạo tài liệu text và embedding |
 | KB-MGMT-04 | Gọi lại endpoint text cùng filename | Nội dung/chunk cũ được thay thế |
 | KB-MGMT-05 | `DELETE /workspaces/{id}/knowledge/{filename}` | File biến mất khỏi summary |
-| KB-MGMT-06 | Xóa workspace | SQL data liên quan và collection Chroma bị xóa |
+| KB-MGMT-06 | Xóa workspace | SQL data và toàn bộ `knowledge_chunks` (nội dung + embedding) liên quan bị xóa trong Postgres |
 
 ## Test giao diện
 

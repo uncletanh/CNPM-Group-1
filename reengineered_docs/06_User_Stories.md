@@ -8,7 +8,7 @@
 - Summary hiển thị số document/chunk và metadata.
 - Preview hiển thị chunk, page nếu có.
 - Upload lại cùng filename thay thế dữ liệu cũ.
-- Xóa workspace xóa collection Chroma tương ứng.
+- Xóa workspace xóa toàn bộ `knowledge_chunks` tương ứng trong Postgres.
 
 **Trạng thái:** Đã có automated test cho list/delete và UI cho upload/preview/text.
 

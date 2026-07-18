@@ -24,7 +24,7 @@ Ngày cập nhật: **16/07/2026**.
 
 | Hạng mục | Trạng thái |
 |---|---|
-| ChromaDB persistent và embedding | Hoàn tất |
+| Embedding tri thức (Postgres, đã pivot khỏi ChromaDB vì filesystem ephemeral trên Render Free) | Hoàn tất |
 | PDF/TXT/DOCX/text ingestion | Hoàn tất |
 | System Prompt | Hoàn tất |
 | UI upload/progress/list/preview/delete | Hoàn tất |
@@ -74,7 +74,7 @@ Lưu ý: Ollama vẫn là mặc định; Groq/Gemini chỉ được gọi khi ch
 
 ### Lead
 
-- Chuẩn hóa staging architecture cho PostgreSQL, Redis, LLM provider và persistent Chroma.
+- Chuẩn hóa staging architecture cho PostgreSQL, Redis và LLM provider.
 - Định nghĩa security checklist, secrets, backup/restore và monitoring.
 - Review Alembic migration strategy và loại bỏ dần schema mutation khi startup.
 
