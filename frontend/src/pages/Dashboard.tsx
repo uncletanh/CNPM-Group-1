@@ -118,9 +118,14 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    void fetchHealth();
+    const timer = window.setTimeout(() => {
+      void fetchHealth();
+    }, 0);
     const interval = setInterval(() => void fetchHealth(), 30000);
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [fetchHealth]);
 
   useEffect(() => {
