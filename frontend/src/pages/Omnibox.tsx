@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import type { AxiosError } from "axios";
 import {
   Bot,
@@ -393,7 +395,7 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
                                   : "bg-indigo-600 text-white rounded-br-none"
                             }`}
                           >
-                            {msg.content}
+                            {isUser || isAgent ? msg.content : <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>}
                           </div>
                           <div className={`text-[9px] text-slate-500 mt-1 ${isUser ? "text-left" : "text-right"}`}>
                             {isAgent ? "Nhân viên" : isUser ? "Khách" : "Bot"} · {formatTime(msg.created_at)}

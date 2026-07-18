@@ -109,8 +109,9 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
     }
   };
 
+  const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
   const embedSnippet = selectedWorkspace
-    ? `<script src="https://cdn.novachat.ai/script.umd.js"\n        data-workspace-id="${selectedWorkspace.id}"\n        data-widget-token="${selectedWorkspace.widget_token || ""}"\n        data-api-url="http://localhost:8000/api/v1"></script>`
+    ? `<script src="https://cdn.novachat.ai/script.umd.js"\n        data-workspace-id="${selectedWorkspace.id}"\n        data-widget-token="${selectedWorkspace.widget_token || ""}"\n        data-api-url="${apiBase}"></script>`
     : "";
 
   const saveWidgetSettings = async () => {

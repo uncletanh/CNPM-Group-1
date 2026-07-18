@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { MessageSquare, X, Send, Bot, User, Headset } from 'lucide-react';
 import { getWidgetConfig, type WidgetConfig } from './config';
 import {
@@ -282,7 +284,7 @@ function App() {
                           ? 'bg-amber-500 text-white rounded-bl-none'
                           : 'bg-white text-slate-700 border border-slate-100 rounded-bl-none'
                     }`} style={isUser ? { backgroundColor: settings.primary_color } : undefined}>
-                      {msg.text}
+                      {isUser || isAgent ? msg.text : <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.text}</ReactMarkdown>}
                     </div>
                     {msg.sources && msg.sources.length > 0 && (
                       <div className="mt-2 space-y-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] text-slate-500 shadow-sm">
