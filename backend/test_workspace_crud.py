@@ -15,7 +15,7 @@ def run_workspace_crud_test() -> None:
     owner = User(
         email=f"ws-owner-{uuid4()}@example.com",
         hashed_password=security.get_password_hash("mat-khau-manh-123"),
-        role="admin",
+        role="USER",
     )
     db.add(owner)
     db.commit()
@@ -67,7 +67,7 @@ def run_workspace_crud_test() -> None:
         domain = client.put(
             f"/api/v1/workspaces/{workspace_id}/widget-domain",
             headers=headers,
-            json={"allowed_origin": "https://khachhang.example.com"},
+            json={"domains": ["https://khachhang.example.com"]},
         )
         assert domain.status_code == 200, domain.text
 
@@ -75,7 +75,7 @@ def run_workspace_crud_test() -> None:
         other = User(
             email=f"ws-other-{uuid4()}@example.com",
             hashed_password=security.get_password_hash("mat-khau-manh-123"),
-            role="admin",
+            role="USER",
         )
         db.add(other)
         db.commit()

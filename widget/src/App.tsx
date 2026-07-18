@@ -35,6 +35,7 @@ const DEFAULT_SETTINGS: WidgetSettings = {
   greeting: GREETING.text,
   avatar_url: null,
   position: "right",
+  watermark: true,
 };
 
 function App() {
@@ -349,9 +350,11 @@ function App() {
                 <Send className="w-4 h-4 ml-0.5" />
               </button>
             </form>
-            <div className="text-center mt-3 text-[10px] text-slate-400 font-medium uppercase tracking-widest">
-              Powered by NovaChat
-            </div>
+            {settings.watermark && (
+              <div className="text-center mt-3 text-[10px] text-slate-400 font-medium uppercase tracking-widest">
+                Powered by NovaChat
+              </div>
+            )}
           </div>
 
         </div>

@@ -39,6 +39,7 @@ export interface WidgetSettings {
   greeting: string;
   avatar_url: string | null;
   position: "left" | "right";
+  watermark: boolean;
 }
 
 // session_key duoc luu vao localStorage de cuoc hoi thoai song sot qua reload trang.

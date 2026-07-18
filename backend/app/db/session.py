@@ -55,9 +55,16 @@ def ensure_workspace_schema() -> None:
                     {"token": uuid.uuid4().hex, "id": workspace_id},
                 )
 
-    if "allowed_origin" not in workspace_columns:
+    if "allowed_domains" not in workspace_columns:
         with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE workspaces ADD COLUMN allowed_origin VARCHAR"))
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN allowed_domains JSON"))
+            connection.execute(text("UPDATE workspaces SET allowed_domains = '[]' WHERE allowed_domains IS NULL"))
+
+    if "message_count" not in workspace_columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN message_count INTEGER"))
+            connection.execute(text("ALTER TABLE workspaces ADD COLUMN message_count_period VARCHAR"))
+            connection.execute(text("UPDATE workspaces SET message_count = 0 WHERE message_count IS NULL"))
 
     widget_columns = {
         "widget_primary_color": ("VARCHAR", "#4f46e5"),
@@ -79,6 +86,23 @@ def ensure_workspace_schema() -> None:
                     text(f"UPDATE workspaces SET {name} = :value WHERE {name} IS NULL"),
                     {"value": default},
                 )
+
+
+def ensure_user_schema() -> None:
+    """Add plan column and chuan hoa gia tri role cu (agent/admin) cho DB cu."""
+    inspector = inspect(engine)
+    if "users" not in inspector.get_table_names():
+        return
+
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    with engine.begin() as connection:
+        if "plan" not in user_columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR"))
+        connection.execute(text("UPDATE users SET plan = 'FREE' WHERE plan IS NULL"))
+        connection.execute(text("UPDATE users SET role = 'ADMIN' WHERE role = 'admin'"))
+        connection.execute(
+            text("UPDATE users SET role = 'USER' WHERE role IS NULL OR role NOT IN ('ADMIN', 'STAFF')")
+        )
 
 
 def ensure_chat_session_schema() -> None:

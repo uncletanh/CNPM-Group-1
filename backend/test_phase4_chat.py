@@ -28,7 +28,7 @@ def run_phase4_test() -> None:
     owner = User(
         email=f"phase4-{uuid4()}@example.com",
         hashed_password=security.get_password_hash("phase4-password"),
-        role="agent",
+        role="USER",
     )
     db.add(owner)
     db.commit()

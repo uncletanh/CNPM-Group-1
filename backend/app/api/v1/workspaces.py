@@ -33,7 +33,7 @@ from app.schemas.workspace import (
     WorkspaceInvitationResponse,
     WorkspaceMemberResponse,
     WorkspaceMemberRoleUpdate,
-    WorkspaceOriginUpdate,
+    WorkspaceDomainsUpdate,
     WorkspacePromptUpdate,
     WorkspaceResponse,
     WidgetSettingsResponse,
@@ -297,14 +297,16 @@ def update_workspace_prompt(
 
 
 @router.put("/{workspace_id}/widget-domain", response_model=WorkspaceResponse)
-def update_widget_allowed_origin(
+def update_widget_allowed_domains(
     workspace_id: int,
-    origin_in: WorkspaceOriginUpdate,
+    domains_in: WorkspaceDomainsUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     workspace = get_owned_workspace(workspace_id, db, current_user)
-    workspace.allowed_origin = origin_in.allowed_origin.strip() if origin_in.allowed_origin else None
+    workspace.allowed_domains = [
+        domain.strip().rstrip("/").lower() for domain in domains_in.domains if domain.strip()
+    ]
     db.commit()
     db.refresh(workspace)
     return workspace

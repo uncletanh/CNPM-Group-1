@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_role
 from app.core import security
 from app.db.session import get_db
-from app.models.user import User
-from app.schemas.user import PasswordChange, UserResponse
+from app.models.user import ROLE_ADMIN, User
+from app.schemas.user import LicenseActivateRequest, PasswordChange, UserResponse
+from app.services.licensing import enforce_verify_rate_limit, verify_and_activate
 
 router = APIRouter()
 
@@ -32,16 +33,21 @@ def change_password(
     return current_user
 
 
+@router.put("/me/upgrade", response_model=UserResponse)
+def upgrade_current_user(
+    activate_in: LicenseActivateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(enforce_verify_rate_limit),
+):
+    verify_and_activate(db, current_user, activate_in.key)
+    return current_user
+
+
 @router.get("/", response_model=list[UserResponse])
 def read_users(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_role(ROLE_ADMIN)),
 ):
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Chỉ quản trị viên hệ thống được xem danh sách tài khoản.",
-        )
     return db.query(User).offset(skip).limit(limit).all()

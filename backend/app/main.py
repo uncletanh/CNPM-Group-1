@@ -4,15 +4,17 @@ from fastapi import FastAPI, Request
 from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
-from app.api.v1 import users, auth, workspaces, chat
+from app.api.v1 import admin, users, auth, workspaces, chat
 from app.db.session import (
     Base,
     DATABASE_BACKEND,
     DATABASE_IS_PERSISTENT,
     engine,
     ensure_chat_session_schema,
+    ensure_user_schema,
     ensure_workspace_schema,
 )
+from app.models.license import LicenseKey  # noqa: F401
 from app.models.workspace import WorkspaceInvitation, WorkspaceMember  # noqa: F401
 from app.services.embeddings import get_embedding_collection_suffix
 from app.services.observability import (
@@ -26,6 +28,7 @@ configure_logging()
 # Tạo tất cả các bảng trong Database (Tạm thời dùng cách này để dễ setup cho sinh viên)
 Base.metadata.create_all(bind=engine)
 ensure_workspace_schema()
+ensure_user_schema()
 ensure_chat_session_schema()
 
 app = FastAPI(
@@ -93,6 +96,7 @@ except ModuleNotFoundError:
     pass
 
 # Đăng ký các router
+app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["Workspaces"])
