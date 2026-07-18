@@ -42,7 +42,7 @@ Khi đưa lên CDN, có thể nhúng theo cấu hình script tag:
 ></script>
 ```
 
-Màn hình **Cấu hình Bot AI** sinh một snippet mẫu. Code hiện vẫn dùng `https://cdn.novachat.ai/script.umd.js` và API localhost trong snippet, vì vậy khi phát hành phải thay bằng URL CDN/API thật (output local hiện là `script.umd.cjs`). Nếu cấu hình `allowed_origin`, domain chứa widget phải khớp chính xác origin đã lưu.
+Màn hình **Cấu hình Bot AI** sinh snippet với `src` lấy từ `window.location.origin` (cùng origin với dashboard) + `/script.umd.cjs`. Widget được phát hành cùng deploy của dashboard: `frontend/scripts/copy-widget-assets.mjs` build `widget/` rồi copy `dist/script.umd.cjs` + `dist/script.css` vào `frontend/public/` trước khi build dashboard (xem `frontend/package.json` script `build`) — không dùng CDN riêng, không cần domain/project deploy thêm. Nếu cấu hình `allowed_origin`, domain chứa widget phải khớp chính xác origin đã lưu.
 
 ## Luồng hoạt động
 

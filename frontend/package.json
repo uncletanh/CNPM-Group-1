@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm --prefix ../widget ci && npm --prefix ../widget run build && node scripts/copy-widget-assets.mjs && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

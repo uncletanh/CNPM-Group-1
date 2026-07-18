@@ -110,8 +110,11 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
   };
 
   const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+  // Widget duoc phat hanh cung origin voi dashboard nay (xem
+  // frontend/scripts/copy-widget-assets.mjs), khong dung CDN rieng.
+  const widgetScriptUrl = `${window.location.origin}/script.umd.cjs`;
   const embedSnippet = selectedWorkspace
-    ? `<script src="https://cdn.novachat.ai/script.umd.js"\n        data-workspace-id="${selectedWorkspace.id}"\n        data-widget-token="${selectedWorkspace.widget_token || ""}"\n        data-api-url="${apiBase}"></script>`
+    ? `<script src="${widgetScriptUrl}"\n        data-workspace-id="${selectedWorkspace.id}"\n        data-widget-token="${selectedWorkspace.widget_token || ""}"\n        data-api-url="${apiBase}"></script>`
     : "";
 
   const saveWidgetSettings = async () => {

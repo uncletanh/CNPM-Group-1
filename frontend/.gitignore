@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Widget build output copied in by scripts/copy-widget-assets.mjs
+public/script.umd.cjs
+public/script.css
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

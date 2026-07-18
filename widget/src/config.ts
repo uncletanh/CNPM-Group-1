@@ -1,8 +1,9 @@
-// Widget được nhúng vào web của SME qua thẻ <script>, ví dụ:
-// <script src="https://cdn.novachat.ai/script.umd.js"
+// Widget được nhúng vào web của SME qua thẻ <script>, ví dụ (snippet thật do
+// BotConfig.tsx sinh ra, src cùng origin với dashboard - xem widget/README.md):
+// <script src="https://<dashboard-domain>/script.umd.cjs"
 //         data-workspace-id="1"
 //         data-widget-token="xxxx"
-//         data-api-url="https://api.novachat.ai/api/v1"></script>
+//         data-api-url="https://<backend-domain>/api/v1"></script>
 //
 // Khi chạy `npm run dev` cục bộ (không có script tag thật) thì lấy từ biến môi trường Vite.
 export interface WidgetConfig {
