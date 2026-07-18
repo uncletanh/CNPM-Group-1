@@ -27,13 +27,11 @@ npm.cmd run build
 
 Output chính:
 
-- `dist/script.umd.cjs`
-- `dist/script.css`
+- `dist/script.umd.cjs` — file DUY NHẤT cần nhúng. CSS (Tailwind) được `vite-plugin-css-injected-by-js` (`vite.config.ts`) nhúng thẳng vào file JS này lúc build, tự inject vào `<head>` qua `<style>` khi script chạy — không còn xuất `script.css` riêng, không cần `<link rel="stylesheet">` nào cả. Đây là fix cho lỗi "widget tải được nhưng không hiển thị": DOM mount đúng nhưng nếu thiếu CSS thì mọi class Tailwind (position, size, màu) vô hiệu, layout coi như biến mất.
 
-Khi đưa lên CDN, có thể nhúng theo cấu hình script tag:
+Khi đưa lên CDN, chỉ cần một thẻ script duy nhất ("Plug and Play" — không cần Client Component/useEffect ở bất kỳ framework nào):
 
 ```html
-<link rel="stylesheet" href="https://cdn.example.com/script.css">
 <script
   src="https://cdn.example.com/script.umd.cjs"
   data-workspace-id="1"
@@ -42,7 +40,7 @@ Khi đưa lên CDN, có thể nhúng theo cấu hình script tag:
 ></script>
 ```
 
-Màn hình **Cấu hình Bot AI** sinh snippet với `src` lấy từ `window.location.origin` (cùng origin với dashboard) + `/script.umd.cjs`. Widget được phát hành cùng deploy của dashboard: `frontend/scripts/copy-widget-assets.mjs` build `widget/` rồi copy `dist/script.umd.cjs` + `dist/script.css` vào `frontend/public/` trước khi build dashboard (xem `frontend/package.json` script `build`) — không dùng CDN riêng, không cần domain/project deploy thêm. Nếu cấu hình `allowed_origin`, domain chứa widget phải khớp chính xác origin đã lưu.
+Màn hình **Cấu hình Bot AI** sinh snippet với `src` lấy từ `window.location.origin` (cùng origin với dashboard) + `/script.umd.cjs`. Widget được phát hành cùng deploy của dashboard: `frontend/scripts/copy-widget-assets.mjs` build `widget/` rồi copy `dist/script.umd.cjs` vào `frontend/public/` trước khi build dashboard (xem `frontend/package.json` script `build`) — không dùng CDN riêng, không cần domain/project deploy thêm. Nếu cấu hình `allowed_domains`, domain chứa widget phải khớp một trong các domain đã lưu.
 
 ## Luồng hoạt động
 
