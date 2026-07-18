@@ -210,7 +210,7 @@ function App() {
     <div className={`fixed bottom-6 z-50 flex flex-col space-y-4 font-sans ${settings.position === "left" ? "left-6 items-start" : "right-6 items-end"}`}>
       {/* Khung Chat */}
       {isOpen && (
-        <div className="w-[380px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all duration-300 origin-bottom-right">
+        <div className="w-[340px] h-[480px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all duration-300 origin-bottom-right">
           
           {/* Header */}
           <div className="p-4 flex items-center justify-between shadow-md z-10" style={{ backgroundColor: settings.primary_color }}>
