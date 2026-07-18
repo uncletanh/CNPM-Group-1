@@ -7,6 +7,7 @@ from app.core import security
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.user import User
+from app.models.workspace import WorkspaceMember
 
 
 def run_workspace_crud_test() -> None:
@@ -38,6 +39,37 @@ def run_workspace_crud_test() -> None:
         listed = client.get("/api/v1/workspaces/", headers=headers)
         assert listed.status_code == 200, listed.text
         assert any(w["id"] == workspace_id for w in listed.json())
+
+        # --- Regression: workspace co nhieu member khac khong duoc nhan ban
+        # trong danh sach cua owner (tung bi loi outerjoin fan-out + distinct
+        # loi tren Postgres do cot allowed_domains kieu JSON). ---
+        member_one = User(
+            email=f"ws-member1-{uuid4()}@example.com",
+            hashed_password=security.get_password_hash("mat-khau-manh-123"),
+            role="USER",
+        )
+        member_two = User(
+            email=f"ws-member2-{uuid4()}@example.com",
+            hashed_password=security.get_password_hash("mat-khau-manh-123"),
+            role="USER",
+        )
+        db.add_all([member_one, member_two])
+        db.commit()
+        db.add_all(
+            [
+                WorkspaceMember(workspace_id=workspace_id, user_id=member_one.id, role="agent"),
+                WorkspaceMember(workspace_id=workspace_id, user_id=member_two.id, role="agent"),
+            ]
+        )
+        db.commit()
+        listed_with_members = client.get("/api/v1/workspaces/", headers=headers)
+        assert listed_with_members.status_code == 200, listed_with_members.text
+        matches = [w for w in listed_with_members.json() if w["id"] == workspace_id]
+        assert len(matches) == 1, f"Workspace bi nhan ban trong danh sach: {matches}"
+        db.query(WorkspaceMember).filter(WorkspaceMember.workspace_id == workspace_id).delete()
+        db.delete(member_one)
+        db.delete(member_two)
+        db.commit()
 
         # --- Doi system prompt (>= 20 ky tu) ---
         prompt = client.put(

@@ -2,16 +2,9 @@ import uuid
 from datetime import datetime, timedelta
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
-
-# Postgres 'json' khong co operator '=' nen SELECT DISTINCT/GROUP BY tren cot
-# nay se loi "could not identify an equality operator for type json" (SQLite
-# thi khong kiem tra chat nen khong lo ra khi test local). Dung JSONB tren
-# Postgres (co operator =) va giu JSON thuong tren SQLite (khong co JSONB).
-JsonColumnType = JSON().with_variant(JSONB(), "postgresql")
 
 DEFAULT_SYSTEM_PROMPT = (
     "Ban la tro ly ao cua cong ty. Chi tra loi dua tren context duoc cung cap. "
@@ -37,7 +30,7 @@ class Workspace(Base):
     # nay (kiem tra header Origin). Day la lop phong thu bo sung, khong thay the
     # hoan toan widget_token vi Origin/Referer van co the bi gia mao boi client
     # khong phai trinh duyet (vd goi truc tiep bang script/cURL).
-    allowed_domains = Column(JsonColumnType, nullable=False, default=list)
+    allowed_domains = Column(JSON, nullable=False, default=list)
     widget_primary_color = Column(String, nullable=False, default="#4f46e5")
     bot_name = Column(String, nullable=False, default="NovaChat AI")
     bot_greeting = Column(
