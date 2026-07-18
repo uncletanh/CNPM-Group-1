@@ -1,5 +1,7 @@
 import os
+import time
 from fastapi import FastAPI, Request
+from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from app.api.v1 import users, auth, workspaces, chat
@@ -31,6 +33,8 @@ app = FastAPI(
     version="0.1.0",
     description="Backend API for NovaChat AI Platform"
 )
+
+_STARTED_AT = time.time()
 
 # Dashboard admin (frontend) chỉ được gọi từ các origin cố định dưới đây.
 ADMIN_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
@@ -102,11 +106,20 @@ def read_root():
 
 @app.get("/health", tags=["Operations"])
 def health_check():
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        database_connected = True
+    except Exception:
+        database_connected = False
+
     return {
-        "status": "ok",
+        "status": "ok" if database_connected else "degraded",
         "service": "novachat-backend",
+        "uptime_seconds": round(time.time() - _STARTED_AT),
         "database_backend": DATABASE_BACKEND,
         "database_persistent": DATABASE_IS_PERSISTENT,
+        "database_connected": database_connected,
         "embedding_backend": get_embedding_collection_suffix(),
         "llm_provider": os.getenv("LLM_PROVIDER", "ollama"),
         "groq_model": os.getenv("GROQ_MODEL", "openai/gpt-oss-20b"),

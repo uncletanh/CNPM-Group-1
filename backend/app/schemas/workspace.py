@@ -100,6 +100,10 @@ class WorkspaceMemberResponse(BaseModel):
     is_owner: bool = False
 
 
+class WorkspaceMemberRoleUpdate(BaseModel):
+    role: str = Field(pattern="^(admin|agent)$")
+
+
 class WorkspaceInvitationCreate(BaseModel):
     email: EmailStr
     role: str = Field(default="agent", pattern="^(admin|agent)$")

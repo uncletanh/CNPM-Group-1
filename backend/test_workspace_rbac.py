@@ -70,6 +70,36 @@ def run_workspace_rbac_test() -> None:
         assert client.get(
             f"/api/v1/workspaces/{workspace.id}/members", headers=agent_headers
         ).status_code == 403
+
+        role_forbidden = client.put(
+            f"/api/v1/workspaces/{workspace.id}/members/{agent.id}/role",
+            json={"role": "admin"},
+            headers=agent_headers,
+        )
+        assert role_forbidden.status_code == 403, role_forbidden.text
+
+        promoted = client.put(
+            f"/api/v1/workspaces/{workspace.id}/members/{agent.id}/role",
+            json={"role": "admin"},
+            headers=owner_headers,
+        )
+        assert promoted.status_code == 200, promoted.text
+        assert promoted.json()["role"] == "admin"
+
+        assert client.get(
+            f"/api/v1/workspaces/{workspace.id}/members", headers=agent_headers
+        ).status_code == 200
+        assert client.put(
+            f"/api/v1/workspaces/{workspace.id}/widget-settings",
+            json={
+                "primary_color": "#123456",
+                "bot_name": "Bot",
+                "greeting": "Xin chào",
+                "avatar_url": None,
+                "position": "right",
+            },
+            headers=agent_headers,
+        ).status_code == 200
         print("[SUCCESS] Workspace invitation and Admin/Agent RBAC test passed.")
     finally:
         db.query(WorkspaceInvitation).filter(
