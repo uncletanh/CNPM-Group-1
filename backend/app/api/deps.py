@@ -37,3 +37,17 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Tài khoản đã bị vô hiệu hóa.")
     return user
+
+
+def require_role(*roles: str):
+    """Dependency factory: chi cho qua khi User.role (vai tro toan cuc) nam trong `roles`."""
+
+    def checker(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền truy cập chức năng này.",
+            )
+        return current_user
+
+    return checker

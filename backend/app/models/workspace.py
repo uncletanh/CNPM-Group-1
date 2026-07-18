@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from app.db.session import Base
@@ -26,11 +26,11 @@ class Workspace(Base):
     widget_token = Column(
         String, unique=True, index=True, nullable=False, default=generate_widget_token
     )
-    # Neu duoc dien, /chat chi chap nhan widget_token goi tu dung domain nay
-    # (kiem tra header Origin). Day la lop phong thu bo sung, khong thay the
+    # Neu khong rong, /chat chi chap nhan widget_token goi tu mot trong cac domain
+    # nay (kiem tra header Origin). Day la lop phong thu bo sung, khong thay the
     # hoan toan widget_token vi Origin/Referer van co the bi gia mao boi client
     # khong phai trinh duyet (vd goi truc tiep bang script/cURL).
-    allowed_origin = Column(String, nullable=True)
+    allowed_domains = Column(JSON, nullable=False, default=list)
     widget_primary_color = Column(String, nullable=False, default="#4f46e5")
     bot_name = Column(String, nullable=False, default="NovaChat AI")
     bot_greeting = Column(
@@ -40,6 +40,11 @@ class Workspace(Base):
     )
     bot_avatar_url = Column(String, nullable=True)
     widget_position = Column(String, nullable=False, default="right")
+    # Dem so tin nhan bot da xu ly qua Embed API trong ky (message_count_period)
+    # hien tai, dung de gioi han goi FREE. Reset khi sang ky moi (xem
+    # app/services/monetization.py). Khong tinh tin nhan test trong dashboard.
+    message_count = Column(Integer, nullable=False, default=0)
+    message_count_period = Column(String, nullable=True)  # "YYYY-MM"
 
     owner = relationship("User", back_populates="workspaces")
 

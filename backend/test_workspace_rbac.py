@@ -14,7 +14,7 @@ def run_workspace_rbac_test() -> None:
     owner = User(
         email=f"owner-{uuid4()}@example.com",
         hashed_password=security.get_password_hash("owner-password"),
-        role="agent",
+        role="USER",
     )
     db.add(owner)
     db.commit()
@@ -41,7 +41,7 @@ def run_workspace_rbac_test() -> None:
             json={"email": agent_email, "password": "agent-password"},
         )
         assert registration.status_code == 200, registration.text
-        assert registration.json()["role"] == "agent"
+        assert registration.json()["role"] == "USER"
         agent = db.query(User).filter(User.email == agent_email).first()
         agent_headers = {"Authorization": f"Bearer {security.create_access_token(agent.id)}"}
 

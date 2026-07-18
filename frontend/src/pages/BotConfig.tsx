@@ -9,7 +9,7 @@ interface Workspace {
   name: string;
   system_prompt?: string;
   widget_token?: string;
-  allowed_origin?: string | null;
+  allowed_domains?: string[];
   widget_primary_color?: string;
   bot_name?: string;
   bot_greeting?: string;
@@ -46,7 +46,9 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
   const [systemPrompt, setSystemPrompt] = useState(
     selectedWorkspace?.system_prompt || (selectedWorkspace ? DEFAULT_SYSTEM_PROMPT : "")
   );
-  const [allowedOrigin, setAllowedOrigin] = useState(selectedWorkspace?.allowed_origin || "");
+  const [allowedDomainsInput, setAllowedDomainsInput] = useState(
+    (selectedWorkspace?.allowed_domains || []).join(", ")
+  );
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
   const [isSavingOrigin, setIsSavingOrigin] = useState(false);
   const [copied, setCopied] = useState<"token" | "embed" | null>(null);
@@ -62,7 +64,7 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
     setSelectedWorkspaceId(nextId);
     const workspace = nextId === "" ? undefined : workspaces.find((item) => item.id === nextId);
     setSystemPrompt(workspace?.system_prompt || (workspace ? DEFAULT_SYSTEM_PROMPT : ""));
-    setAllowedOrigin(workspace?.allowed_origin || "");
+    setAllowedDomainsInput((workspace?.allowed_domains || []).join(", "));
     setPrimaryColor(workspace?.widget_primary_color || "#4f46e5");
     setBotName(workspace?.bot_name || "NovaChat AI");
     setGreeting(workspace?.bot_greeting || "Xin chào! Mình có thể giúp gì cho bạn?");
@@ -91,15 +93,17 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
 
   const handleSaveOrigin = async () => {
     if (!selectedWorkspaceId) return;
+    const domains = allowedDomainsInput
+      .split(",")
+      .map((domain) => domain.trim())
+      .filter(Boolean);
     setIsSavingOrigin(true);
     try {
-      await api.put(`/workspaces/${selectedWorkspaceId}/widget-domain`, {
-        allowed_origin: allowedOrigin.trim() || null,
-      });
+      await api.put(`/workspaces/${selectedWorkspaceId}/widget-domain`, { domains });
       await onWorkspacesChanged?.();
       toast.success(
-        allowedOrigin.trim()
-          ? "Đã khóa widget vào domain này."
+        domains.length
+          ? "Đã khóa widget vào các domain này."
           : "Đã gỡ khóa domain — widget dùng được ở mọi origin."
       );
     } catch (err) {
@@ -234,16 +238,16 @@ const BotConfig: React.FC<BotConfigProps> = ({ workspaces, onWorkspacesChanged }
                 <span>Khóa Domain (tùy chọn)</span>
               </h3>
               <p className="mb-3 text-xs text-slate-400">
-                Nếu điền, widget chỉ hoạt động trên đúng domain này. Để trống = cho phép mọi domain.
+                Nếu điền, widget chỉ hoạt động trên các domain này (phân tách bằng dấu phẩy). Để trống = cho phép mọi domain.
               </p>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Globe className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   <input
                     type="text"
-                    placeholder="https://example.com"
-                    value={allowedOrigin}
-                    onChange={(e) => setAllowedOrigin(e.target.value)}
+                    placeholder="https://example.com, https://app.example.com"
+                    value={allowedDomainsInput}
+                    onChange={(e) => setAllowedDomainsInput(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-slate-950 py-3 pl-10 pr-4 text-sm text-white outline-none transition-all placeholder:text-slate-500 focus:border-indigo-500"
                   />
                 </div>

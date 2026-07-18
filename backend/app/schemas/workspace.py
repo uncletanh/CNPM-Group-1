@@ -17,9 +17,9 @@ class WorkspacePromptUpdate(BaseModel):
     system_prompt: str = Field(..., min_length=20, max_length=4000)
 
 
-class WorkspaceOriginUpdate(BaseModel):
-    # De trong (None) = khong khoa domain, widget_token dung duoc tu bat ky origin nao.
-    allowed_origin: str | None = Field(default=None, max_length=255)
+class WorkspaceDomainsUpdate(BaseModel):
+    # Danh sach rong = khong khoa domain, widget_token dung duoc tu bat ky origin nao.
+    domains: list[str] = Field(default_factory=list)
 
 
 class WidgetSettingsUpdate(BaseModel):
@@ -36,6 +36,7 @@ class WidgetSettingsResponse(BaseModel):
     greeting: str
     avatar_url: str | None = None
     position: str
+    watermark: bool = True
 
 
 class WorkspaceResponse(WorkspaceBase):
@@ -43,7 +44,7 @@ class WorkspaceResponse(WorkspaceBase):
     system_prompt: str = DEFAULT_SYSTEM_PROMPT
     owner_id: int
     widget_token: str
-    allowed_origin: str | None = None
+    allowed_domains: list[str] = Field(default_factory=list)
     widget_primary_color: str = "#4f46e5"
     bot_name: str = "NovaChat AI"
     bot_greeting: str = "Xin chào! Mình là NovaChat AI. Mình có thể giúp gì cho bạn?"

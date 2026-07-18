@@ -23,7 +23,7 @@ def run_auth_users_test() -> None:
         )
         assert res.status_code == 200, res.text
         assert res.json()["email"] == email
-        assert res.json()["role"] == "agent"
+        assert res.json()["role"] == "USER"
 
         # --- Register: email trung lap -> 400 ---
         dup = client.post(
@@ -75,7 +75,7 @@ def run_auth_users_test() -> None:
         admin = User(
             email=f"admin-{uuid4()}@example.com",
             hashed_password=security.get_password_hash(password),
-            role="admin",
+            role="ADMIN",
         )
         db.add(admin)
         db.commit()

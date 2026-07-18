@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, UserLogin, Token
 from app.core import security
+from app.models.user import ROLE_USER
 
 router = APIRouter()
 
@@ -41,7 +42,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     new_user = User(
         email=user_in.email,
         hashed_password=security.get_password_hash(user_in.password),
-        role="agent"
+        role=ROLE_USER
     )
     db.add(new_user)
     db.commit()
@@ -94,7 +95,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         user = User(
             email=email,
             hashed_password=security.get_password_hash(uuid.uuid4().hex),
-            role="agent",
+            role=ROLE_USER,
         )
         db.add(user)
         db.commit()

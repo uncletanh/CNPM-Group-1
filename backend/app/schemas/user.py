@@ -9,6 +9,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     role: str
+    plan: str
     is_active: bool
 
     class Config:
@@ -26,4 +27,17 @@ class UserLogin(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8, max_length=128)
+
+
+class StaffCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+class UserPlanUpdate(BaseModel):
+    plan: str = Field(pattern="^(FREE|PRO)$")
+
+
+class LicenseActivateRequest(BaseModel):
+    key: str = Field(..., min_length=1, max_length=64)
 
