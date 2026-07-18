@@ -48,6 +48,8 @@ function App() {
   const [realtimeVersion, setRealtimeVersion] = useState(0);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [{ config, configError }] = useState<{
     config: WidgetConfig | null;
     configError: string | null;
@@ -138,6 +140,13 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+  }, [inputText]);
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || isSending) return;
@@ -201,7 +210,7 @@ function App() {
     <div className={`fixed bottom-6 z-50 flex flex-col space-y-4 font-sans ${settings.position === "left" ? "left-6 items-start" : "right-6 items-end"}`}>
       {/* Khung Chat */}
       {isOpen && (
-        <div className="w-[360px] h-[500px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all duration-300 origin-bottom-right">
+        <div className="w-[380px] h-[560px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-100 transform transition-all duration-300 origin-bottom-right">
           
           {/* Header */}
           <div className="p-4 flex items-center justify-between shadow-md z-10" style={{ backgroundColor: settings.primary_color }}>
@@ -278,7 +287,7 @@ function App() {
 
                   {/* Bubble */}
                   <div>
-                    <div className={`p-3 rounded-2xl text-sm shadow-sm ${
+                    <div className={`p-3 rounded-2xl text-[13px] leading-relaxed shadow-sm ${
                       isUser
                         ? 'text-white rounded-br-none'
                         : isAgent
@@ -312,7 +321,7 @@ function App() {
                   <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-gradient-to-br from-indigo-500 to-violet-500">
                     <Bot className="w-4 h-4 text-white" />
                   </div>
-                  <div className="p-3 rounded-2xl text-sm shadow-sm bg-white text-slate-400 border border-slate-100 rounded-bl-none">
+                  <div className="p-3 rounded-2xl text-[13px] leading-relaxed shadow-sm bg-white text-slate-400 border border-slate-100 rounded-bl-none">
                     Đang trả lời...
                   </div>
                 </div>
@@ -333,18 +342,25 @@ function App() {
                 Gặp nhân viên
               </button>
             )}
-            <form onSubmit={handleSend} className="relative flex items-center">
-              <input 
-                type="text" 
-                placeholder="Nhập tin nhắn..." 
+            <form ref={formRef} onSubmit={handleSend} className="relative flex items-end">
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                placeholder="Nhập tin nhắn..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full bg-slate-100 text-slate-700 text-sm rounded-full py-3 pl-4 pr-12 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:text-slate-400"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    formRef.current?.requestSubmit();
+                  }
+                }}
+                className="w-full max-h-[120px] resize-none bg-slate-100 text-slate-700 text-[13px] leading-relaxed rounded-2xl py-3 pl-4 pr-12 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:text-slate-400"
               />
               <button
                 type="submit"
                 disabled={!inputText.trim() || isSending}
-                className="absolute right-1.5 p-2 text-white rounded-full transition-colors disabled:opacity-50 cursor-pointer"
+                className="absolute right-1.5 bottom-1.5 p-2 text-white rounded-full transition-colors disabled:opacity-50 cursor-pointer"
                 style={{ backgroundColor: settings.primary_color }}
               >
                 <Send className="w-4 h-4 ml-0.5" />
