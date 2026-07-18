@@ -1,13 +1,12 @@
 import json
 from uuid import uuid4
 from fastapi.testclient import TestClient
-from langchain_chroma import Chroma
 
 from app.api.v1 import chat as chat_api
-from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS, get_knowledge_collection_name
 from app.db.session import SessionLocal
 from app.main import app
 from app.models.chat import ChatSession, Message
+from app.models.knowledge import KnowledgeChunk
 from app.models.workspace import Workspace
 
 
@@ -50,21 +49,21 @@ def run_chat_api_test() -> None:
     db.commit()
     db.refresh(workspace)
 
-    collection_name = get_knowledge_collection_name(workspace.id)
-    vector_store = None
-    try:
-        vector_store = Chroma(
-            collection_name=collection_name,
-            embedding_function=FakeEmbeddings(),
-            persist_directory=CHROMA_DATA_DIR,
-            client_settings=CHROMA_SETTINGS,
+    seed_text = "NovaChat có gói miễn phí cho workspace thử nghiệm."
+    embedding_version = "unknown-v1"  # FakeEmbeddings has no collection_suffix attribute
+    db.add(
+        KnowledgeChunk(
+            workspace_id=workspace.id,
+            filename="pricing.md",
+            chunk_index=0,
+            content=seed_text,
+            embedding=FakeEmbeddings().embed_query(seed_text),
+            embedding_model=embedding_version,
         )
-        vector_store.add_texts(
-            texts=["NovaChat có gói miễn phí cho workspace thử nghiệm."],
-            metadatas=[{"source_filename": "pricing.md", "chunk_index": 0}],
-            ids=[f"chat-api-test-{workspace.id}-0"],
-        )
+    )
+    db.commit()
 
+    try:
         client = TestClient(app)
 
         # /chat yeu cau xac thuc: goi thieu widget_token phai bi tu choi 401.
@@ -115,8 +114,7 @@ def run_chat_api_test() -> None:
         )
         print("[SUCCESS] Chat API streaming SSE test passed.")
     finally:
-        if vector_store is not None:
-            vector_store.delete_collection()
+        db.query(KnowledgeChunk).filter(KnowledgeChunk.workspace_id == workspace.id).delete()
         # Xoa cac phien chat + tin nhan da tao trong luc test (tranh de rac trong DB).
         sessions = db.query(ChatSession).filter(ChatSession.workspace_id == workspace.id).all()
         for session in sessions:

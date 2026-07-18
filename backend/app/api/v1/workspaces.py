@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -11,15 +11,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.db.chroma import (
-    CHROMA_DATA_DIR,
-    CHROMA_SETTINGS,
-    get_chroma_client,
-    get_knowledge_collection_name,
-    get_workspace_collection,
-)
 from app.db.session import get_db
 from app.models.chat import ChatSession, Message
+from app.models.knowledge import KnowledgeChunk
 from app.models.user import User
 from app.models.workspace import (
     DEFAULT_SYSTEM_PROMPT,
@@ -44,7 +38,7 @@ from app.schemas.workspace import (
     WidgetSettingsResponse,
     WidgetSettingsUpdate,
 )
-from app.services.embeddings import get_embedding_model
+from app.services import knowledge_store
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -129,32 +123,26 @@ def save_upload_to_temp_file(file: UploadFile, file_ext: str) -> tuple[str, int]
     return tmp_path, total_size
 
 
-def get_knowledge_summary(workspace_id: int) -> KnowledgeSummaryResponse:
-    collection = get_workspace_collection(str(workspace_id))
-    result = collection.get(include=["metadatas"])
+def get_knowledge_summary(workspace_id: int, db: Session) -> KnowledgeSummaryResponse:
+    embedding_version = knowledge_store.current_embedding_version()
+    chunks = knowledge_store.get_workspace_chunks(db, workspace_id, embedding_version=embedding_version)
     grouped: dict[str, dict] = {}
 
-    for metadata in result.get("metadatas") or []:
-        metadata = metadata or {}
-        filename = str(
-            metadata.get("source_filename")
-            or metadata.get("source")
-            or "Tài liệu không xác định"
-        )
+    for chunk in chunks:
         document = grouped.setdefault(
-            filename,
+            chunk.filename,
             {
-                "filename": filename,
-                "file_size": metadata.get("file_size"),
+                "filename": chunk.filename,
+                "file_size": chunk.file_size,
                 "chunks": 0,
-                "uploaded_at": metadata.get("uploaded_at"),
-                "file_type": metadata.get("file_type"),
+                "uploaded_at": chunk.uploaded_at,
+                "file_type": chunk.file_type,
             },
         )
         document["chunks"] += 1
-        document["file_size"] = document["file_size"] or metadata.get("file_size")
-        document["uploaded_at"] = document["uploaded_at"] or metadata.get("uploaded_at")
-        document["file_type"] = document["file_type"] or metadata.get("file_type")
+        document["file_size"] = document["file_size"] or chunk.file_size
+        document["uploaded_at"] = document["uploaded_at"] or chunk.uploaded_at
+        document["file_type"] = document["file_type"] or chunk.file_type
 
     documents = [KnowledgeDocumentResponse(**document) for document in grouped.values()]
     documents.sort(key=lambda document: (document.uploaded_at or "", document.filename), reverse=True)
@@ -165,46 +153,43 @@ def get_knowledge_summary(workspace_id: int) -> KnowledgeSummaryResponse:
     )
 
 
-def get_knowledge_preview(workspace_id: int, filename: str) -> KnowledgePreviewResponse:
-    collection = get_workspace_collection(str(workspace_id))
-    result = collection.get(
-        where={"source_filename": filename},
-        include=["documents", "metadatas"],
+def get_knowledge_preview(workspace_id: int, filename: str, db: Session) -> KnowledgePreviewResponse:
+    embedding_version = knowledge_store.current_embedding_version()
+    chunks = knowledge_store.get_workspace_chunks(
+        db, workspace_id, embedding_version=embedding_version, filename=filename
     )
-    documents = result.get("documents") or []
-    metadatas = result.get("metadatas") or []
-    chunks = []
-
-    for position, content in enumerate(documents):
-        metadata = metadatas[position] or {} if position < len(metadatas) else {}
-        chunks.append(
-            KnowledgePreviewChunk(
-                chunk_index=int(metadata.get("chunk_index", position)),
-                page=(int(metadata["page"]) + 1 if metadata.get("page") is not None else None),
-                content=str(content or "").strip(),
-            )
+    preview_chunks = [
+        KnowledgePreviewChunk(
+            chunk_index=chunk.chunk_index,
+            page=(
+                int(chunk.extra_metadata["page"]) + 1
+                if chunk.extra_metadata and chunk.extra_metadata.get("page") is not None
+                else None
+            ),
+            content=chunk.content.strip(),
         )
+        for chunk in chunks
+        if chunk.content and chunk.content.strip()
+    ]
 
-    chunks = [chunk for chunk in chunks if chunk.content]
-    chunks.sort(key=lambda chunk: chunk.chunk_index)
-    if not chunks:
+    if not preview_chunks:
         raise HTTPException(status_code=404, detail="Không tìm thấy nội dung xem trước của tài liệu.")
 
     return KnowledgePreviewResponse(
         filename=filename,
-        total_chunks=len(chunks),
-        chunks=chunks,
+        total_chunks=len(preview_chunks),
+        chunks=preview_chunks,
     )
 
 
 def replace_knowledge_documents(
+    db: Session,
     workspace_id: int,
     filename: str,
     documents: list,
     file_size: int,
     file_ext: str,
 ) -> tuple[int, str]:
-    from langchain_chroma import Chroma
     from langchain_text_splitters import RecursiveCharacterTextSplitter
 
     text_splitter = RecursiveCharacterTextSplitter(
@@ -220,32 +205,10 @@ def replace_knowledge_documents(
     if not chunks:
         raise HTTPException(status_code=400, detail="Tài liệu không có nội dung văn bản hợp lệ.")
 
-    uploaded_at = datetime.now(timezone.utc).isoformat()
-    for index, chunk in enumerate(chunks):
-        chunk.metadata.update(
-            {
-                "workspace_id": str(workspace_id),
-                "source_filename": filename,
-                "chunk_index": index,
-                "file_size": file_size,
-                "file_type": file_ext.lstrip("."),
-                "uploaded_at": uploaded_at,
-            }
-        )
-
-    collection_name = get_knowledge_collection_name(workspace_id)
-    vector_store = Chroma(
-        collection_name=collection_name,
-        embedding_function=get_embedding_model(),
-        persist_directory=CHROMA_DATA_DIR,
-        client_settings=CHROMA_SETTINGS,
+    chunk_count, embedding_version = knowledge_store.replace_document_chunks(
+        db, workspace_id, filename, chunks, file_size, file_ext.lstrip(".")
     )
-    existing = vector_store.get(where={"source_filename": filename}, include=[])
-    existing_ids = existing.get("ids") or []
-    if existing_ids:
-        vector_store.delete(ids=existing_ids)
-    vector_store.add_documents(chunks)
-    return len(chunks), collection_name
+    return chunk_count, embedding_version
 
 
 @router.get("/", response_model=list[WorkspaceResponse])
@@ -291,11 +254,9 @@ def delete_workspace(
     current_user: User = Depends(get_current_user),
 ):
     workspace = get_owned_workspace(workspace_id, db, current_user)
-    collection_prefix = f"workspace_{workspace_id}_knowledge"
-    for collection in get_chroma_client().list_collections():
-        collection_name = getattr(collection, "name", str(collection))
-        if collection_name.startswith(collection_prefix):
-            get_chroma_client().delete_collection(collection_name)
+    db.query(KnowledgeChunk).filter(KnowledgeChunk.workspace_id == workspace_id).delete(
+        synchronize_session=False
+    )
     session_ids = [
         row[0]
         for row in db.query(ChatSession.id)
@@ -550,8 +511,8 @@ async def upload_knowledge(
         if not documents:
             raise HTTPException(status_code=400, detail="Khong doc duoc noi dung tu file.")
 
-        chunk_count, collection_name = replace_knowledge_documents(
-            workspace_id, filename, documents, file_size, file_ext
+        chunk_count, embedding_version = replace_knowledge_documents(
+            db, workspace_id, filename, documents, file_size, file_ext
         )
 
         return KnowledgeUploadResponse(
@@ -559,7 +520,7 @@ async def upload_knowledge(
             filename=filename,
             file_size=file_size,
             chunks=chunk_count,
-            collection_name=collection_name,
+            collection_name=embedding_version,
         )
     except HTTPException:
         raise
@@ -596,7 +557,8 @@ def upsert_text_knowledge(
     if not filename.lower().endswith(".txt"):
         filename = f"{filename}.txt"
     content = text_in.content.strip()
-    chunk_count, collection_name = replace_knowledge_documents(
+    chunk_count, embedding_version = replace_knowledge_documents(
+        db,
         workspace_id,
         filename,
         [Document(page_content=content)],
@@ -608,7 +570,7 @@ def upsert_text_knowledge(
         filename=filename,
         file_size=len(content.encode("utf-8")),
         chunks=chunk_count,
-        collection_name=collection_name,
+        collection_name=embedding_version,
     )
 
 
@@ -619,7 +581,7 @@ def list_knowledge_documents(
     current_user: User = Depends(get_current_user),
 ):
     get_owned_workspace(workspace_id, db, current_user)
-    return get_knowledge_summary(workspace_id)
+    return get_knowledge_summary(workspace_id, db)
 
 
 @router.get(
@@ -634,7 +596,7 @@ def preview_knowledge_document(
 ):
     get_owned_workspace(workspace_id, db, current_user)
     decoded_filename = Path(unquote(filename)).name
-    return get_knowledge_preview(workspace_id, decoded_filename)
+    return get_knowledge_preview(workspace_id, decoded_filename, db)
 
 
 @router.delete("/{workspace_id}/knowledge/{filename}", response_model=KnowledgeSummaryResponse)
@@ -646,10 +608,7 @@ def delete_knowledge_document(
 ):
     get_owned_workspace(workspace_id, db, current_user)
     decoded_filename = Path(unquote(filename)).name
-    collection = get_workspace_collection(str(workspace_id))
-    matching = collection.get(where={"source_filename": decoded_filename}, include=[])
-    ids = matching.get("ids") or []
-    if not ids:
+    deleted = knowledge_store.delete_document(db, workspace_id, decoded_filename)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Không tìm thấy tài liệu trong kho tri thức.")
-    collection.delete(ids=ids)
-    return get_knowledge_summary(workspace_id)
+    return get_knowledge_summary(workspace_id, db)

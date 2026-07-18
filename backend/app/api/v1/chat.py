@@ -17,14 +17,12 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from langchain_core.documents import Document
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.api.v1.workspaces import get_embedding_model, get_workspace_access
+from app.api.v1.workspaces import get_workspace_access
 from app.core import security
-from app.db.chroma import CHROMA_DATA_DIR, CHROMA_SETTINGS, get_knowledge_collection_name
 from app.db.session import SessionLocal, get_db
 from app.models.chat import (
     STATUS_BOT_HANDLING,
@@ -49,9 +47,10 @@ from app.schemas.chat import (
 )
 from app.schemas.workspace import WidgetSettingsResponse
 from app.services.llm import LLMProviderError, get_llm_provider
-from app.services.embeddings import EmbeddingServiceError
+from app.services.embeddings import EmbeddingServiceError, get_embedding_model
+from app.services import knowledge_store
 from app.services.realtime import realtime_manager, takeover_lock
-from app.services.retrieval import hybrid_rank
+from app.services.retrieval import hybrid_rank, vector_distance
 
 router = APIRouter()
 
@@ -285,31 +284,27 @@ def save_message(db: Session, session: ChatSession, sender: str, content: str) -
     return message
 
 
-def get_workspace_vector_store(workspace_id: int):
-    from langchain_chroma import Chroma
-
-    return Chroma(
-        collection_name=get_knowledge_collection_name(workspace_id),
-        embedding_function=get_embedding_model(),
-        persist_directory=CHROMA_DATA_DIR,
-        client_settings=CHROMA_SETTINGS,
-    )
-
-
-def retrieve_context(workspace_id: int, message: str, top_k: int):
+def retrieve_context(workspace_id: int, message: str, top_k: int, db: Session):
     try:
-        vector_store = get_workspace_vector_store(workspace_id)
-        semantic_limit = max(top_k * 4, 10)
-        semantic_results = vector_store.similarity_search_with_score(message, k=semantic_limit)
-        raw_documents = vector_store.get(include=["documents", "metadatas"])
+        embedding_model = get_embedding_model()
+        embedding_version = str(getattr(embedding_model, "collection_suffix", "unknown-v1"))
+        query_vector = embedding_model.embed_query(message)
+        chunks = knowledge_store.get_workspace_chunks(
+            db, workspace_id, embedding_version=embedding_version
+        )
         all_documents = [
-            Document(page_content=content, metadata=metadata or {})
-            for content, metadata in zip(
-                raw_documents.get("documents") or [],
-                raw_documents.get("metadatas") or [],
-            )
-            if content and content.strip()
+            knowledge_store.to_document(chunk)
+            for chunk in chunks
+            if chunk.content and chunk.content.strip()
         ]
+        semantic_limit = max(top_k * 4, 10)
+        semantic_results = sorted(
+            (
+                (knowledge_store.to_document(chunk), vector_distance(query_vector, chunk.embedding))
+                for chunk in chunks
+            ),
+            key=lambda pair: pair[1],
+        )[:semantic_limit]
         ranked = hybrid_rank(
             semantic_results,
             all_documents,
@@ -320,7 +315,7 @@ def retrieve_context(workspace_id: int, message: str, top_k: int):
     except EmbeddingServiceError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Không thể truy vấn ChromaDB: {exc}")
+        raise HTTPException(status_code=500, detail=f"Không thể truy vấn kho tri thức: {exc}")
 
     return [
         (result.document, result.distance)
@@ -380,7 +375,7 @@ async def chat_with_workspace(
 
     query = retrieval_query(db, session, user_message.id, message)
     retrieved = [] if contains_prompt_injection(message) else retrieve_context(
-        workspace_id, query, chat_in.top_k
+        workspace_id, query, chat_in.top_k, db
     )
     if not retrieved:
         move_to_handoff(db, session)
@@ -455,7 +450,7 @@ async def chat_with_workspace_stream(
     user_message = save_message(db, session, "user", message)
 
     is_human_handling = session.status in {STATUS_WAITING_HUMAN, STATUS_HUMAN_HANDLING}
-    # Chi truy van ChromaDB khi bot con phu trach (tiet kiem khi da co nhan vien).
+    # Chi truy van kho tri thuc khi bot con phu trach (tiet kiem khi da co nhan vien).
     retrieved = (
         []
         if is_human_handling or contains_prompt_injection(message)
@@ -463,6 +458,7 @@ async def chat_with_workspace_stream(
             workspace_id,
             retrieval_query(db, session, user_message.id, message),
             chat_in.top_k,
+            db,
         )
     )
     history = recent_history(db, session, user_message.id)
