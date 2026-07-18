@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+/*
+  Trang chu (host) co the co CSS toan cuc (vi du p{font-size:...}) anh huong
+  ca vao noi dung <p>/<li>/<h1-6> ma ReactMarkdown render ben trong bubble
+  chat bot - vi day la the thuong, khong phai Tailwind utility class, nen
+  se thang hon class cua minh trong mot so truong hop cascade. Dung
+  !important scope theo #novachat-widget-root de dam bao chu bot luon bang
+  chu cua khach (13px), bat ke CSS trang khach co gi.
+*/
+#novachat-widget-root p,
+#novachat-widget-root li,
+#novachat-widget-root h1,
+#novachat-widget-root h2,
+#novachat-widget-root h3,
+#novachat-widget-root h4,
+#novachat-widget-root h5,
+#novachat-widget-root h6,
+#novachat-widget-root blockquote {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  margin: 0 0 0.4em 0 !important;
+  font-family: inherit !important;
+}
+
+#novachat-widget-root h1,
+#novachat-widget-root h2,
+#novachat-widget-root h3,
+#novachat-widget-root h4,
+#novachat-widget-root h5,
+#novachat-widget-root h6 {
+  font-weight: 600 !important;
+}
+
+#novachat-widget-root ul,
+#novachat-widget-root ol {
+  font-size: 13px !important;
+  padding-left: 1.1em !important;
+  margin: 0.2em 0 !important;
+}
+
+#novachat-widget-root p:last-child {
+  margin-bottom: 0 !important;
+}
