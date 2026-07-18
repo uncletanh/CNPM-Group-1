@@ -150,6 +150,7 @@ GitHub Actions chạy các test backend bằng `coverage`, yêu cầu tổng cov
 - [Widget README](widget/README.md)
 - [Bộ tài liệu sản phẩm và kiến trúc](reengineered_docs/01_Product_Introduction.md)
 - [Trạng thái triển khai](reengineered_docs/12_Implementation_Status.md)
+- [Tài liệu lịch sử (Product Discovery gốc)](archive/README.md)
 
 ## Quy trình Git
 
