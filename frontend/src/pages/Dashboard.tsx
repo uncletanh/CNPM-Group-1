@@ -49,6 +49,22 @@ const getApiErrorDetail = (error: unknown) => {
   return axiosError.response?.data?.detail;
 };
 
+interface HealthStatus {
+  status: string;
+  uptime_seconds: number;
+  database_backend: string;
+  database_persistent: boolean;
+  database_connected: boolean;
+  llm_provider: string;
+  embedding_backend: string;
+}
+
+const formatUptime = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return `${hours}h ${minutes}m`;
+};
+
 const Dashboard = () => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +80,8 @@ const Dashboard = () => {
   const [userEmail] = useState(() => localStorage.getItem("email") || "admin@novachat.com");
   const [selectedKnowledgeWorkspaceId, setSelectedKnowledgeWorkspaceId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+  const [health, setHealth] = useState<HealthStatus | null>(null);
+
   const navigate = useNavigate();
 
   const fetchWorkspaces = useCallback(async () => {
@@ -87,6 +104,29 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [navigate]);
+
+  const fetchHealth = useCallback(async () => {
+    const apiBase = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
+    const backendRoot = apiBase.replace(/\/api\/v1\/?$/, "");
+    try {
+      const response = await fetch(`${backendRoot}/health`);
+      if (!response.ok) throw new Error("health check failed");
+      setHealth(await response.json());
+    } catch {
+      setHealth(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetchHealth();
+    }, 0);
+    const interval = setInterval(() => void fetchHealth(), 30000);
+    return () => {
+      window.clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, [fetchHealth]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -426,8 +466,12 @@ const Dashboard = () => {
                   <Bot className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-white">Đang chạy</div>
-              <p className="text-[10px] text-emerald-400 font-semibold mt-1">Kết nối API: 100%</p>
+              <div className="text-2xl font-bold text-white">
+                {health ? (health.status === "ok" ? "Đang chạy" : "Suy giảm") : "Đang kiểm tra..."}
+              </div>
+              <p className="text-[10px] text-emerald-400 font-semibold mt-1">
+                {health ? `LLM: ${health.llm_provider}` : "—"}
+              </p>
             </div>
 
             {/* Stat Card 3 */}
@@ -439,8 +483,10 @@ const Dashboard = () => {
                   <Activity className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-white">99.98%</div>
-              <p className="text-[10px] text-slate-500 font-semibold mt-1">Hệ thống tối ưu hóa</p>
+              <div className="text-2xl font-bold text-white">
+                {health ? formatUptime(health.uptime_seconds) : "—"}
+              </div>
+              <p className="text-[10px] text-slate-500 font-semibold mt-1">Từ lần khởi động backend gần nhất</p>
             </div>
 
             {/* Stat Card 4 */}
@@ -452,8 +498,14 @@ const Dashboard = () => {
                   <Database className="h-4 w-4" />
                 </div>
               </div>
-              <div className="text-2xl font-bold text-white">Kết nối tốt</div>
-              <p className="text-[10px] text-slate-500 font-semibold mt-1">SQL DB: Đã đồng bộ</p>
+              <div className="text-2xl font-bold text-white">
+                {health ? (health.database_connected ? "Kết nối tốt" : "Mất kết nối") : "Đang kiểm tra..."}
+              </div>
+              <p className="text-[10px] text-slate-500 font-semibold mt-1">
+                {health
+                  ? `${health.database_backend.toUpperCase()}${health.database_persistent ? "" : " (không bền)"}`
+                  : "—"}
+              </p>
             </div>
           </div>
 

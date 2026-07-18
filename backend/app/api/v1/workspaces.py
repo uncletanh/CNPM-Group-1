@@ -32,6 +32,7 @@ from app.schemas.workspace import (
     WorkspaceInvitationCreate,
     WorkspaceInvitationResponse,
     WorkspaceMemberResponse,
+    WorkspaceMemberRoleUpdate,
     WorkspaceOriginUpdate,
     WorkspacePromptUpdate,
     WorkspaceResponse,
@@ -480,6 +481,36 @@ def remove_workspace_member(
     db.delete(membership)
     db.commit()
     return None
+
+
+@router.put("/{workspace_id}/members/{user_id}/role", response_model=WorkspaceMemberResponse)
+def update_member_role(
+    workspace_id: int,
+    user_id: int,
+    role_in: WorkspaceMemberRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    get_owned_workspace(workspace_id, db, current_user)
+    membership = (
+        db.query(WorkspaceMember)
+        .filter(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.user_id == user_id,
+        )
+        .first()
+    )
+    if not membership:
+        raise HTTPException(status_code=404, detail="Không tìm thấy thành viên.")
+    membership.role = role_in.role
+    db.commit()
+    db.refresh(membership)
+    return WorkspaceMemberResponse(
+        user_id=membership.user_id,
+        email=membership.user.email,
+        role=membership.role,
+        is_owner=False,
+    )
 
 
 @router.post("/{workspace_id}/knowledge", response_model=KnowledgeUploadResponse)

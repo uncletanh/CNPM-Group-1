@@ -94,6 +94,19 @@ const WorkspaceManagement = ({
     setMembers((current) => current.filter((member) => member.user_id !== userId));
     toast.success("Đã xóa thành viên khỏi workspace.");
   };
+
+  const updateMemberRole = async (userId: number, role: "admin" | "agent") => {
+    if (!memberWorkspace) return;
+    try {
+      const response = await api.put(`/workspaces/${memberWorkspace.id}/members/${userId}/role`, { role });
+      setMembers((current) =>
+        current.map((member) => (member.user_id === userId ? { ...member, role: response.data.role } : member))
+      );
+      toast.success("Đã cập nhật vai trò thành viên.");
+    } catch {
+      toast.error("Không thể cập nhật vai trò thành viên.");
+    }
+  };
   const filteredWorkspaces = workspaces.filter((workspace) =>
     workspace.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -217,12 +230,22 @@ const WorkspaceManagement = ({
                 <div key={member.user_id} className="flex items-center justify-between border-b border-slate-100 py-3">
                   <div>
                     <div className="text-sm font-semibold">{member.email}</div>
-                    <div className="text-xs text-slate-500">{member.is_owner ? "Chủ sở hữu" : member.role === "admin" ? "Admin" : "Agent"}</div>
+                    {member.is_owner && <div className="text-xs text-slate-500">Chủ sở hữu</div>}
                   </div>
                   {!member.is_owner && (
-                    <button onClick={() => void removeMember(member.user_id)} title="Xóa thành viên" className="rounded-md p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={member.role}
+                        onChange={(event) => void updateMemberRole(member.user_id, event.target.value as "admin" | "agent")}
+                        className="rounded-md border border-slate-300 px-2 py-1 text-xs"
+                      >
+                        <option value="agent">Agent</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <button onClick={() => void removeMember(member.user_id)} title="Xóa thành viên" className="rounded-md p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
