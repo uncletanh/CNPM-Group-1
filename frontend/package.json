@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build:widget": "cd ../widget && npm ci && npm run build && node -e \"const fs=require('fs'); fs.cpSync('dist', '../frontend/public', {recursive: true, force: true})\"",
+    "build": "npm run build:widget && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
