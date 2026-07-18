@@ -10,7 +10,6 @@ Ngày cập nhật: **18/07/2026**.
 4. PostgreSQL.
 5. Redis cho môi trường nhiều backend instance.
 6. Ollama trên máy đủ tài nguyên, hoặc Groq/Gemini bằng API key.
-7. Persistent volume cho `backend/chroma_data` hoặc một chiến lược Chroma server riêng.
 
 ## Biến môi trường backend
 
@@ -39,7 +38,7 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 ## Quy trình release
 
 1. Chạy GitHub Actions hoặc các lệnh test tương đương.
-2. Backup PostgreSQL và Chroma persistent volume.
+2. Backup PostgreSQL (chứa cả dữ liệu tri thức/embedding).
 3. Chạy `cd backend && alembic upgrade head`.
 4. Deploy backend và kiểm tra `GET /health`.
 5. Kiểm tra `/metrics` trong mạng monitoring; endpoint này chưa có auth riêng.
@@ -55,13 +54,13 @@ Frontend cần `VITE_API_URL=https://<backend>/api/v1` tại thời điểm buil
 - Gemini Free Tier có rate limit và dữ liệu có thể được Google dùng để cải thiện sản phẩm; không dùng tài liệu nhạy cảm khi chưa đánh giá điều khoản dữ liệu.
 - Cấu hình Google OAuth callback đúng domain staging.
 - Kiểm tra `allowed_origin` của widget trên domain staging.
-- Kiểm tra restart backend không làm mất PostgreSQL/Chroma data.
+- Kiểm tra restart backend không làm mất dữ liệu PostgreSQL (bao gồm tri thức đã nạp).
 
 ## Production
 
 - Nếu dùng Ollama, đặt trong mạng riêng và không công khai cổng `11434`.
 - Render free không phù hợp chạy Ollama; dùng `LLM_PROVIDER=groq`/`gemini` hoặc một VM Ollama riêng. Dùng cloud provider đồng nghĩa prompt và context RAG được gửi ra dịch vụ ngoài.
-- Gắn persistent disk cho ChromaDB. Nếu backend chạy nhiều instance, Chroma local filesystem không tự đồng bộ giữa các instance; cần shared architecture hoặc Chroma server trước khi scale ngang.
+- Tri thức/embedding lưu trong PostgreSQL (bảng `knowledge_chunks`) nên bền qua restart/redeploy và dùng chung được giữa nhiều backend instance mà không cần shared filesystem riêng.
 - Redis dùng cho Pub/Sub và distributed lock; Redis down sẽ rơi về lock trong process và không còn đảm bảo cross-instance.
 - Rate limiter hiện là in-memory, chưa phải global distributed rate limit.
 - Giới hạn quyền truy cập `/metrics` tại reverse proxy/firewall.

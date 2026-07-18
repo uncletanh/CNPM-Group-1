@@ -46,7 +46,7 @@ alembic upgrade head
 
 Alembic hiện có một baseline Phase 4. `Base.metadata.create_all()` và các hàm `ensure_*_schema()` vẫn được giữ để tương thích database SQLite cũ; migration tiếp theo nên được quản lý hoàn toàn bằng Alembic.
 
-ChromaDB lưu persistent tại `backend/chroma_data/`. Mỗi workspace dùng collection `workspace_<id>_knowledge`.
+Tri thức/embedding lưu trong bảng `knowledge_chunks` của CSDL quan hệ (cùng DB với các bảng khác), không còn phụ thuộc filesystem riêng nên bền qua restart/redeploy.
 
 ## Chạy server
 
@@ -104,7 +104,5 @@ Widget public phải gửi `X-Widget-Token`; nếu workspace có `allowed_origin
 .\venv\Scripts\python.exe test_workspace_crud.py
 .\venv\Scripts\python.exe -m pytest test_embeddings.py
 ```
-
-`test_chroma.py` là smoke test Chroma/embedding riêng.
 
 Trong CI, bảy script chính và unit test embedding được chạy qua `coverage`, gộp kết quả và yêu cầu tối thiểu 70%. Bandit cũng quét thư mục `app` với ngưỡng severity `high`.

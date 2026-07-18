@@ -111,7 +111,7 @@ def run_phase4_test() -> None:
         original_retrieve = chat_api.retrieve_context
         original_provider = chat_api.get_llm_provider
 
-        def fake_retrieve(_, query, __):
+        def fake_retrieve(_, query, __, ___):
             retrieval_queries.append(query)
             return [
                 (

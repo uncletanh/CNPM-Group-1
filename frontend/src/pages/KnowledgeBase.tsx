@@ -221,7 +221,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
 
       setProgress(100);
       setUploadResult(response.data);
-      toast.success(`Đã nạp ${response.data.chunks} đoạn dữ liệu vào ChromaDB.`);
+      toast.success(`Đã nạp ${response.data.chunks} đoạn dữ liệu vào kho tri thức.`);
       clearFile();
       await fetchKnowledge();
     } catch (err: unknown) {
@@ -329,7 +329,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
             <span>Quản lý Tri thức</span>
           </h2>
           <p className="mt-1 text-sm text-slate-400">
-            Nạp tài liệu PDF/TXT vào ChromaDB làm nguồn tri thức cho chatbot. (Tính cách bot cấu hình ở tab "Cấu hình Bot AI".)
+            Nạp tài liệu PDF/TXT vào kho tri thức làm nguồn dữ liệu cho chatbot. (Tính cách bot cấu hình ở tab "Cấu hình Bot AI".)
           </p>
         </div>
       </div>
@@ -552,7 +552,7 @@ const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({
               disabled={isUploading || !file}
               className="mt-6 w-full cursor-pointer rounded-xl bg-indigo-600 py-3 font-bold text-white transition-all hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isUploading ? "Đang xử lý..." : "Tải lên & Nạp vào ChromaDB"}
+              {isUploading ? "Đang xử lý..." : "Tải lên & Nạp vào kho tri thức"}
             </button>
           </div>
         </div>

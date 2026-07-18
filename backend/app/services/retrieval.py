@@ -68,6 +68,11 @@ def bm25_scores(documents: list[str], query: str, k1: float = 1.5, b: float = 0.
     return scores
 
 
+def vector_distance(a: list[float], b: list[float]) -> float:
+    """Squared L2 distance, matching Chroma's default HNSW space so RAG_MAX_DISTANCE keeps its meaning."""
+    return sum((x - y) ** 2 for x, y in zip(a, b))
+
+
 def _document_key(document: Document) -> tuple:
     metadata = document.metadata or {}
     return (

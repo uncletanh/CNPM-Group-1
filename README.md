@@ -29,9 +29,9 @@ Chi tiết và các phần còn thiếu được duy trì tại [Trạng thái t
 | Dashboard | React 19, TypeScript, Vite, Tailwind CSS |
 | Widget | React 19, TypeScript, Vite Library Mode |
 | CSDL quan hệ | SQLite khi phát triển; PostgreSQL cho staging/production |
-| Vector store | ChromaDB persistent, collection riêng theo workspace |
+| Vector store | Bảng `knowledge_chunks` trong PostgreSQL/SQLite, embedding lưu JSON |
 | Embedding | Gemini `gemini-embedding-001` 768 chiều; feature-hashing chỉ dùng fallback local |
-| Retrieval | Chroma semantic search + BM25 local + Reciprocal Rank Fusion |
+| Retrieval | Semantic search (cosine/L2 tính bằng Python) + BM25 local + Reciprocal Rank Fusion |
 | LLM | Ollama `qwen2.5:3b`, Groq, Gemini và fallback tự động |
 | Realtime | SSE cho token AI; WebSocket + Redis Pub/Sub cho sự kiện hội thoại |
 
