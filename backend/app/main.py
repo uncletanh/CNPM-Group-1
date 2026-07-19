@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from fastapi import FastAPI, Request
 from sqlalchemy import text
@@ -46,20 +47,28 @@ if frontend_url:
     ADMIN_ORIGINS.add(frontend_url)
 
 
+# Chi dung path thuc te widget goi tu domain khach hang (khong the biet truoc origin).
+# Cac sub-path con lai duoi /api/v1/chat/ (sessions/stats/reply/takeover/resolve...) chi
+# danh cho Agent dang nhap dashboard, khong duoc reflect origin bat ky - truoc day dieu
+# kien nay dua vao "request co header X-Widget-Token khong" (client tu khai, khong xac
+# thuc gia tri), nen ke tan cong tu them header do la lam CORS nghi day la request cong
+# khai cho ca nhung endpoint chi-Agent. Chuyen sang whitelist theo dung path.
+_PUBLIC_CHAT_PATH = re.compile(
+    r"^/api/v1/chat/\d+(/widget-config|/stream|/request-human|/history|/poll)?$"
+)
+
+
 class DynamicCORSMiddleware(BaseHTTPMiddleware):
     """
-    /api/v1/chat/* là endpoint công khai được Widget gọi từ domain của khách hàng
-    (không biết trước origin nào), nên phải chấp nhận mọi origin ở đó.
-    Các endpoint admin khác (auth/workspaces/users) chỉ chấp nhận origin trong ADMIN_ORIGINS
-    và có gửi cookie/credentials.
+    Cac path trong _PUBLIC_CHAT_PATH la endpoint cong khai duoc Widget goi tu domain cua
+    khach hang, nen phai chap nhan moi origin o do. Cac endpoint con lai (auth/workspaces/
+    users, va ca cac sub-path quan tri duoi /api/v1/chat/ nhu sessions/reply/takeover) chi
+    chap nhan origin trong ADMIN_ORIGINS va co gui cookie/credentials.
     """
 
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
-        requested_headers = request.headers.get("access-control-request-headers", "").lower()
-        is_public_chat = request.url.path.startswith("/api/v1/chat") and (
-            "x-widget-token" in request.headers or "x-widget-token" in requested_headers
-        )
+        is_public_chat = bool(_PUBLIC_CHAT_PATH.match(request.url.path))
 
         if request.method == "OPTIONS":
             headers = {

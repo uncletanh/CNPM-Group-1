@@ -37,6 +37,15 @@ def run_auth_users_test() -> None:
         )
         assert bad.status_code == 400, bad.text
 
+        # --- Login: email khong ton tai -> cung 400, cung message voi truong hop sai mat
+        # khau (khong duoc phan biet de tranh lo email nao da dang ky) ---
+        unknown = client.post(
+            "/api/v1/auth/login",
+            json={"email": f"khong-ton-tai-{uuid4()}@example.com", "password": "bat-ky"},
+        )
+        assert unknown.status_code == 400, unknown.text
+        assert unknown.json()["detail"] == bad.json()["detail"]
+
         # --- Login: happy path -> token ---
         ok = client.post(
             "/api/v1/auth/login", json={"email": email, "password": password}
@@ -90,6 +99,24 @@ def run_auth_users_test() -> None:
         # --- Google SSO chua cau hinh -> 503 ---
         google = client.get("/api/v1/auth/google/login", follow_redirects=False)
         assert google.status_code in (503, 302), google.text
+
+        # --- CORS: chi path widget cong khai moi duoc phan chieu origin bat ky, du
+        # request tu khai them header X-Widget-Token (truoc day dieu kien nay dua vao
+        # header do client tu khai nen bi lam nhien duoc) ---
+        attacker_origin = "https://attacker.example.com"
+        public_resp = client.options(
+            "/api/v1/chat/999999/widget-config",
+            headers={"Origin": attacker_origin, "X-Widget-Token": "gia-mao"},
+        )
+        assert public_resp.headers.get("access-control-allow-origin") == attacker_origin
+
+        admin_only_resp = client.options(
+            "/api/v1/chat/999999/sessions",
+            headers={"Origin": attacker_origin, "X-Widget-Token": "gia-mao"},
+        )
+        assert "access-control-allow-origin" not in {
+            k.lower() for k in admin_only_resp.headers.keys()
+        }
 
         print("[SUCCESS] Auth register/login and Users me/password/RBAC test passed.")
     finally:
