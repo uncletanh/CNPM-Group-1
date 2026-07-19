@@ -34,8 +34,10 @@ jobs:
           coverage run -p test_auth_users.py
           coverage run -p test_llm_provider.py
           coverage run -p test_workspace_crud.py
+          coverage run -p test_licensing.py
           coverage run -p -m pytest test_embeddings.py
           coverage run -p -m pytest test_retrieval.py
+          coverage run -p -m pytest test_security_config.py
           coverage combine
           coverage report --fail-under=70
       - name: Quet lo hong bao mat (Bandit SAST)

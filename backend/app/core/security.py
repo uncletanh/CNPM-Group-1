@@ -1,14 +1,39 @@
 import os
+import secrets
 from datetime import datetime, timedelta
 from typing import Any, Union
 from jose import jwt
 import bcrypt
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
-SECRET_KEY = os.getenv("SECRET_KEY", "default-fallback-secret-key-for-development")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+
+def _resolve_secret_key() -> str:
+    configured = os.getenv("SECRET_KEY")
+    if configured:
+        return configured
+    if ENVIRONMENT == "production":
+        # Khong duoc fallback am tham tren production: truoc day co mot chuoi co dinh
+        # trong code lam gia tri du phong, nghia la ai doc duoc repo (ma nguon mo) cung
+        # ky duoc JWT hop le cho bat ky user_id, ke ca admin, ma khong can mat khau -
+        # neu vi ly do gi SECRET_KEY chua duoc cau hinh. render.yaml da co
+        # "generateValue: true" cho SECRET_KEY nen truong hop nay khong nen xay ra thuc
+        # te, nhung fail loudly ngay luc khoi dong van an toan hon fallback im lang.
+        raise RuntimeError(
+            "SECRET_KEY chua duoc cau hinh tren moi truong production (ENVIRONMENT="
+            "production). Dat bien moi truong SECRET_KEY truoc khi khoi dong - "
+            "khong dung gia tri mac dinh trong code."
+        )
+    # Local dev/CI/test: sinh ngau nhien rieng cho moi lan khoi dong process (khong
+    # phai mot chuoi co dinh nam san trong code) - token cu se het hieu luc sau moi
+    # lan restart, chap nhan duoc o dev/test vi khong anh huong den du lieu nghiep vu.
+    return secrets.token_hex(32)
+
+
+SECRET_KEY = _resolve_secret_key()
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
