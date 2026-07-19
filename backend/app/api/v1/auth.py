@@ -53,7 +53,10 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
 def login(user_in: UserLogin, db: Session = Depends(get_db)):
     # Tìm user theo email
     user = db.query(User).filter(User.email == user_in.email).first()
-    if not user or not security.verify_password(user_in.password, user.hashed_password):
+    # verify_login_password luon chay du 1 lan bcrypt.checkpw (voi hash gia neu khong tim
+    # thay user) de thoi gian phan hoi khong bi lech giua "email khong ton tai" va "email
+    # ton tai nhung sai mat khau" - tranh lo email nao da dang ky qua timing side-channel.
+    if not security.verify_login_password(user, user_in.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tài khoản hoặc mật khẩu không chính xác."

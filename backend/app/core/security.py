@@ -18,6 +18,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
+# Hash gia dung khi khong tim thay user, de van chay du 1 lan bcrypt.checkpw (cham) -
+# tranh lo qua timing side-channel (email khong ton tai tra loi nhanh hon email ton tai
+# nhung sai mat khau, vi thieu buoc bcrypt).
+_DUMMY_HASH = get_password_hash("dummy-password-for-constant-time-check")
+
+def verify_login_password(user: Any, password: str) -> bool:
+    hashed_password = user.hashed_password if user is not None else _DUMMY_HASH
+    return verify_password(password, hashed_password) and user is not None
+
 def create_access_token(subject: Union[str, Any], expires_delta: timedelta = None) -> str:
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
