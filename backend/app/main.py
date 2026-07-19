@@ -6,6 +6,7 @@ from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from app.api.v1 import admin, users, auth, workspaces, chat
+from app.core.security import SECRET_KEY
 from app.db.session import (
     Base,
     DATABASE_BACKEND,
@@ -98,7 +99,11 @@ try:
 
     app.add_middleware(
         SessionMiddleware,
-        secret_key=os.getenv("SECRET_KEY", "development-secret"),
+        # Dung chung SECRET_KEY da duoc security._resolve_secret_key() xu ly an toan
+        # (fail loudly tren production neu thieu, sinh ngau nhien o dev/CI) - truoc day
+        # co mot chuoi fallback "development-secret" rieng, cung chinh loai loi hardcode
+        # fallback nhu SECRET_KEY cua JWT.
+        secret_key=SECRET_KEY,
     )
 except ModuleNotFoundError:
     # OAuth Google sẽ hoạt động sau khi cài đầy đủ requirements.
