@@ -22,7 +22,7 @@ theo dõi hội thoại realtime, Human Takeover, Widget nhúng tùy biến.
 
 ### 1.3 Minh chứng Agile
 - **25 GitHub Issues** có acceptance criteria, gán nhãn `[Backend]/[Frontend]/[Lead]` theo Phase/Sprint — **100% đã đóng**.
-- **32 Pull Request** (31 đã merge vào `main`) qua feature branch riêng cho từng fix/feature, mỗi PR có
+- **35 Pull Request** (34 đã merge vào `main`) qua feature branch riêng cho từng fix/feature, mỗi PR có
   CI (test + coverage + SAST) chạy qua trước khi merge.
 - Quy trình **Pair Programming** (Driver/Navigator) theo `reengineered_docs/11_Task_Assignment.md`.
 - Giai đoạn cuối (persistence tri thức, RBAC, Freemium/License Key, vá lỗi production) được Lead
@@ -108,6 +108,14 @@ Postgres managed instance đã có (không thêm một hạ tầng cần vận h
   **nhiều domain** (`allowed_domains`, danh sách) qua `DynamicCORSMiddleware`.
 - **AI safety:** guardrail chống hallucination + filter `workspace_id` bắt buộc + escape
   chống prompt injection + chỉ gửi 10 tin nhắn gần nhất cho model.
+- **Rà bảo mật chủ động (19/07):** tự đọc lại toàn bộ luồng auth/RBAC/cách ly dữ liệu trước
+  buổi bảo vệ, không chờ có báo lỗi. Tìm và sửa 2 lỗi mức trung bình: CORS phản chiếu origin
+  dựa vào header client tự khai (không xác thực giá trị) khiến cả các endpoint chỉ dành Agent
+  bị coi nhầm là công khai — đổi sang whitelist đúng path; và timing side-channel lúc login
+  (bỏ qua bước bcrypt khi email không tồn tại) khiến đo được thời gian phản hồi để dò email đã
+  đăng ký — sửa bằng cách luôn chạy đủ bcrypt. **Minh bạch về giới hạn còn lại:** phát hiện
+  `SECRET_KEY` có fallback hardcode trong code nếu thiếu biến môi trường — biết rõ, chưa kịp
+  sửa trước ngày bảo vệ, không giấu. Chi tiết đầy đủ ở `EVIDENCE.md` mục 6.
 
 ---
 
@@ -244,6 +252,8 @@ Postgres managed instance đã có (không thêm một hạ tầng cần vận h
 - [x] **Persistence tri thức** (bug nặng nhất phát hiện sau khi deploy: tri thức mất khi Render restart do ChromaDB dùng filesystem tạm) — đã fix, verify bằng cách restart server thật và xác nhận dữ liệu còn.
 - [x] **Vá lỗi 500 phát hiện ngay trước ngày bảo vệ** trên `GET /workspaces/` (Postgres + cột JSON) — verify lại bằng `curl` thật trên production, không chỉ tin CI xanh.
 - [x] **Vá lỗi UI widget + Human Handoff phát hiện qua test thật trên site khách** (khung/chữ widget bị host CSS ảnh hưởng, nút "Gặp nhân viên" kẹt vĩnh viễn sau khi hết giờ chờ) — verify lại bằng `curl` thật + chờ đủ giờ timeout trên production, không chỉ tin CI xanh.
+- [x] **Rà bảo mật chủ động, sửa 2 lỗi mức trung bình** (CORS phản chiếu origin sai path, timing side-channel lúc login) — xem `EVIDENCE.md` mục 6.
+- [ ] **Còn 1 lỗi bảo mật mức nghiêm trọng chưa sửa** (`SECRET_KEY` fallback hardcode) — ưu tiên cao nhất trong `TODO_BAO_VE.md`, cần xong trước giờ bảo vệ.
 - [ ] Đồng bộ slide (12–15 trang) với code thật (Freemium/License Key, RBAC 2 tầng, không còn ChromaDB) và luyện vấn đáp cá nhân — **mỗi thành viên ôn đúng phần mình đã làm**, không cần biết hết toàn bộ hệ thống.
 - [ ] Diễn tập lại đúng 3 kịch bản BDD ở mục 1.4 **trên link cloud thật** trước giờ bảo vệ, tránh lỗi bất ngờ khi demo trực tiếp.
 

@@ -19,7 +19,7 @@ vai trò khác trong vòng đời phần mềm**, không chỉ implementation:
 | Architect | Đề xuất C4, ADR-001 (Redis lock), quyết định Modular Monolith | `reengineered_docs/10_Software_Architecture.md` |
 | Implementation Agent | Lập plan trước, chờ duyệt, rồi mới code | Toàn bộ PR đều có mô tả plan trong commit/PR body |
 | Test Engineer | Viết test cho từng thay đổi, không chỉ happy path | `test_licensing.py`, `test_workspace_rbac.py`, v.v. |
-| Security/Code Reviewer | Tự rà lại bảo mật trước khi merge | Bandit tích hợp CI, review RBAC 2 tầng |
+| Security/Code Reviewer | Tự rà lại bảo mật trước khi merge; tự chủ động audit toàn bộ luồng auth/CORS/RBAC ngày 19/07 (không đợi có báo lỗi) | Bandit tích hợp CI, review RBAC 2 tầng, tìm+sửa 2 lỗi CORS/timing (PR #64), phát hiện 1 lỗi nghiêm trọng còn mở (`EVIDENCE.md` mục 6) |
 | DevOps Assistant | Tự chẩn đoán và fix CI/CD, lockfile, deploy fail | Xem mục 3 |
 | Production Debugger | Gọi API thật trên Cloud để xác minh lỗi trước khi sửa | Xem mục 3 |
 
