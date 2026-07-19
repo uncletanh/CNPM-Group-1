@@ -104,6 +104,9 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - Coverage gate tổng tối thiểu 70% (thực tế **78%**) và Bandit SAST chặn lỗi severity `high`
   (thực tế **0 High**) — số liệu thật xem `EVIDENCE.md`.
 - Golden dataset RAG 50 câu gồm factual, paraphrase, history, handoff và prompt injection.
+- **Rà bảo mật chủ động (19/07):** tự audit auth/CORS/RBAC, tìm và sửa 2 lỗi mức trung bình
+  (CORS phản chiếu origin sai path, timing side-channel login) — xem `EVIDENCE.md` mục 6 và
+  `08_Risks_Recommendations.md`.
 
 ## Cần cấu hình khi triển khai
 
@@ -111,7 +114,10 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - `FRONTEND_URL` khớp domain dashboard/OAuth.
 - `REDIS_URL` khi chạy nhiều backend instance.
 - Ollama server/model hoặc API key Groq/Gemini tùy provider triển khai.
-- PostgreSQL production và persistent storage cho Chroma.
+- **`SECRET_KEY` phải được set** — code hiện có fallback hardcode nếu thiếu (xem mục P0 dưới),
+  đây là bước cấu hình bắt buộc, không chỉ "nên làm".
+- PostgreSQL production (embedding tri thức lưu chung trong Postgres, không cần storage riêng
+  cho vector DB nữa — đã bỏ ChromaDB).
 - `VITE_API_URL` tại build time của dashboard.
 - HTTPS/reverse proxy hỗ trợ SSE và WebSocket.
 
@@ -119,8 +125,10 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 
 ### P0 trước production
 
+- **`SECRET_KEY` có fallback hardcode trong code** (`security.py`, `main.py`) — nếu thiếu env
+  var, âm thầm dùng chuỗi công khai để ký JWT. Mức nghiêm trọng, ưu tiên cao nhất, chưa sửa
+  (xem `TODO_BAO_VE.md`).
 - Staging/production deployment đã được smoke test end-to-end.
-- Shared/persistent Chroma architecture cho scale ngang.
 - Durable job queue cho ingestion và handoff timeout.
 - Backup/restore, monitoring dashboard và alerting.
 - Automated browser E2E, load test và security/tenant-isolation test.
@@ -151,7 +159,10 @@ NovaChat AI đã hoàn thành luồng MVP từ tạo workspace, nạp tri thức
 - Browser Notification không chạy khi dashboard đã đóng.
 - Rate limit hiện không dùng chung giữa backend instances.
 - `/health` là liveness đơn giản, chưa kiểm tra dependency sâu.
-- `render.yaml` là blueprint mẫu; Chroma persistence cần hạ tầng riêng, còn Ollama cần VM nếu không dùng Groq/Gemini.
+- `render.yaml` là blueprint mẫu; Ollama cần VM riêng nếu không dùng Groq/Gemini. Không còn cần
+  hạ tầng persistence riêng cho vector DB (đã bỏ ChromaDB, embedding nằm chung trong Postgres).
+- `SECRET_KEY` phải luôn được set thủ công ở mọi môi trường không phải local dev — code hiện có
+  fallback hardcode nếu thiếu (xem mục "Chưa hoàn tất" phía trên).
 
 ## Kiểm tra đã có trong CI
 

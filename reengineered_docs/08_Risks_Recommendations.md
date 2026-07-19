@@ -34,7 +34,38 @@
   header) chỉ là lớp bổ sung và có thể giả mạo ngoài browser.
 - **Khuyến nghị:** rotation token, audit log, quota/rate limit và security test tenant isolation.
 
+### CORS phản chiếu origin sai path (đã sửa 19/07)
+
+- **Trước đây:** `DynamicCORSMiddleware` coi request là "public chat" chỉ dựa vào việc client có
+  gửi header TÊN `X-Widget-Token` không (không xác thực giá trị) — client tự thêm header đó là
+  làm CORS nghĩ nhầm cả các sub-path chỉ dành Agent (`/sessions`, `/reply`, `/takeover`,
+  `/resolve`) là công khai, phản chiếu origin bất kỳ.
+- **Đã sửa:** đổi sang whitelist đúng path công khai thật bằng regex (`_PUBLIC_CHAT_PATH` trong
+  `main.py`). Verify bằng `TestClient` và trực tiếp trên production (PR #64).
+- **Còn lại:** rủi ro thực tế vốn đã thấp vì JWT nằm trong LocalStorage (trang lạ không đọc
+  được token của người dùng thật), nhưng lỗi thiết kế đã được sửa triệt để, không chỉ giảm nhẹ.
+
+### Login có timing side-channel (đã sửa 19/07)
+
+- **Trước đây:** `if not user or not verify_password(...)` bỏ qua bước `bcrypt.checkpw` (chậm)
+  khi email không tồn tại, khiến thời gian phản hồi khác biệt rõ giữa "email không tồn tại" và
+  "email tồn tại nhưng sai mật khẩu" — có thể dò email đã đăng ký qua đo thời gian.
+- **Đã sửa:** `security.verify_login_password()` luôn chạy đủ 1 lần bcrypt (dùng hash giả khi
+  không tìm thấy user). Đo lại: ~217ms vs ~224ms (gần bằng nhau, trước đó lệch rõ).
+
 ## Rủi ro còn mở
+
+### `SECRET_KEY` có fallback hardcode trong code — chưa sửa, mức nghiêm trọng
+
+`backend/app/core/security.py` và `backend/app/main.py` đều có dạng
+`os.getenv("SECRET_KEY", "<chuỗi cố định trong code>")`. Nếu biến môi trường `SECRET_KEY` vì lý
+do gì không được set trên môi trường chạy thật (quên cấu hình, deploy mới, redeploy nhỡ tay xoá
+env var), app sẽ **âm thầm** dùng đúng chuỗi công khai này để ký JWT — ai đọc được repo (mã nguồn
+mở) cũng ký được token hợp lệ cho bất kỳ user_id, kể cả admin, không cần mật khẩu.
+
+**Khuyến nghị:** đổi thành `raise RuntimeError(...)` ngay lúc khởi động nếu thiếu `SECRET_KEY`
+ở môi trường không phải local dev (fail loudly), thay vì fallback âm thầm. Đây là mục ưu tiên
+cao nhất còn lại trước buổi bảo vệ — xem `TODO_BAO_VE.md`.
 
 ### Widget bị ảnh hưởng bởi CSS của trang host
 
