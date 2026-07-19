@@ -53,19 +53,41 @@
 - **Đã sửa:** `security.verify_login_password()` luôn chạy đủ 1 lần bcrypt (dùng hash giả khi
   không tìm thấy user). Đo lại: ~217ms vs ~224ms (gần bằng nhau, trước đó lệch rõ).
 
+### `SECRET_KEY` có fallback hardcode trong code (đã sửa 19/07)
+
+- **Trước đây:** `backend/app/core/security.py` và `backend/app/main.py` đều có dạng
+  `os.getenv("SECRET_KEY", "<chuỗi cố định trong code>")`. Nếu biến môi trường `SECRET_KEY` vì lý
+  do gì không được set trên môi trường chạy thật, app **âm thầm** dùng đúng chuỗi công khai này
+  để ký JWT — ai đọc được repo (mã nguồn mở) cũng ký được token hợp lệ cho bất kỳ user_id, kể cả
+  admin, không cần mật khẩu.
+- **Đã sửa:** `security._resolve_secret_key()` — nếu `ENVIRONMENT=production` (đã có sẵn trong
+  `render.yaml`) mà thiếu `SECRET_KEY` → `raise RuntimeError` ngay lúc khởi động (fail loudly);
+  ở dev/CI vẫn chạy được nhưng sinh secret ngẫu nhiên mỗi lần khởi động, không còn chuỗi cố định.
+  Verify thật: production redeploy xong vẫn `/health` OK (Render đã có `SECRET_KEY` qua
+  `generateValue: true`). Test mới `test_security_config.py` (PR #66).
+
 ## Rủi ro còn mở
 
-### `SECRET_KEY` có fallback hardcode trong code — chưa sửa, mức nghiêm trọng
+### Tài liệu nội bộ/nhạy cảm bị tải nhầm vào Knowledge Base rồi lộ ra cho khách qua chatbot
 
-`backend/app/core/security.py` và `backend/app/main.py` đều có dạng
-`os.getenv("SECRET_KEY", "<chuỗi cố định trong code>")`. Nếu biến môi trường `SECRET_KEY` vì lý
-do gì không được set trên môi trường chạy thật (quên cấu hình, deploy mới, redeploy nhỡ tay xoá
-env var), app sẽ **âm thầm** dùng đúng chuỗi công khai này để ký JWT — ai đọc được repo (mã nguồn
-mở) cũng ký được token hợp lệ cho bất kỳ user_id, kể cả admin, không cần mật khẩu.
+Không có khái niệm "tài liệu nội bộ" khác "tài liệu công khai cho khách" trong Knowledge Base.
+`KnowledgeChunk` chỉ gắn `workspace_id`, không có cột phân loại hiển thị (`visibility`). Nếu
+owner/admin-workspace vô tình tải một file nhạy cảm (lương, tài liệu nội bộ...) vào **đúng
+workspace** mà widget khách hàng đang dùng, và một khách hỏi câu đủ gần nghĩa với nội dung đó,
+RAG sẽ tìm thấy và LLM sẽ dùng để trả lời — vì hệ thống đang làm đúng nhiệm vụ "trả lời trung
+thực theo tài liệu đã nạp", không phân biệt được tài liệu đó có nên lộ ra ngoài hay không.
+Guardrail hiện có (`build_rag_prompt`) chỉ chặn AI *bịa* hoặc *làm theo chỉ dẫn ẩn trong
+context* — không chặn AI *trích dẫn nội dung thật* đang có trong context.
 
-**Khuyến nghị:** đổi thành `raise RuntimeError(...)` ngay lúc khởi động nếu thiếu `SECRET_KEY`
-ở môi trường không phải local dev (fail loudly), thay vì fallback âm thầm. Đây là mục ưu tiên
-cao nhất còn lại trước buổi bảo vệ — xem `TODO_BAO_VE.md`.
+**Đã giảm nhẹ (tình cờ, không phải chủ đích):** chỉ owner/admin-workspace tải được KB (không
+phải mọi nhân viên); mọi câu trả lời đều lưu nguồn trích dẫn (tên file, chunk) nên nếu có lộ,
+admin lần lại chính xác qua Omnibox — biết lộ đúng đoạn nào, cho ai, lúc nào; chỉ lộ khi câu hỏi
+khách đủ gần nghĩa với tài liệu đó (`RAG_MAX_DISTANCE`), không phải lộ ra ở mọi câu trả lời.
+
+**Khuyến nghị:** (1) ngắn hạn, chi phí thấp — thêm dòng cảnh báo rõ ở màn hình tải tài liệu
+("Tài liệu này sẽ được dùng để trả lời trực tiếp cho khách hàng bên ngoài"); (2) dài hạn — thêm
+cột `visibility` (`internal`/`customer_facing`) cho từng tài liệu, lọc trong
+`knowledge_store.get_workspace_chunks()` để RAG chỉ truy hồi chunk đã đánh dấu công khai.
 
 ### Widget bị ảnh hưởng bởi CSS của trang host
 
