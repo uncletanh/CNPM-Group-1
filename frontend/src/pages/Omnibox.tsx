@@ -77,6 +77,8 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messageListRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId) || null;
@@ -185,8 +187,25 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
     };
   }, [selectedSessionId, fetchMessages]);
 
+  // Chi tu keo xuong cuoi khi dang gan day (hoac vua mo hoi thoai) - truoc day
+  // effect nay chay vo dieu kien theo [messages], ma messages doi reference moi
+  // sau MOI lan poll (3s) du noi dung khong doi, nen keo giat khung ve cuoi lien
+  // tuc dù Agent dang cuon len doc tin cu.
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    shouldAutoScrollRef.current = true;
+  }, [selectedSessionId]);
+
+  const handleMessageListScroll = () => {
+    const el = messageListRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldAutoScrollRef.current = distanceFromBottom < 80;
+  };
+
+  useEffect(() => {
+    if (shouldAutoScrollRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
 
   const handleTakeover = async () => {
@@ -367,7 +386,11 @@ const Omnibox: React.FC<OmniboxProps> = ({ workspaces }) => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              <div
+                ref={messageListRef}
+                onScroll={handleMessageListScroll}
+                className="flex-1 overflow-y-auto p-5 space-y-4"
+              >
                 {messages.map((msg) => {
                   const isUser = msg.sender === "user";
                   const isAgent = msg.sender === "agent";
