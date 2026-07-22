@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaChat widget isolation test</title>
+    <style>
+      * { box-sizing: content-box !important; color: #b91c1c !important; font-size: 28px !important; }
+      body { margin: 40px !important; background: #fff7ed !important; }
+      button { width: 100% !important; padding: 30px !important; border: 8px solid #b91c1c !important; }
+      img, svg { width: 240px !important; height: 120px !important; }
+      p, h1, h2, h3 { margin: 48px !important; line-height: 2.5 !important; }
+      .host-card { max-width: 560px; border: 4px dashed #ea580c; padding: 24px; }
+    </style>
+  </head>
+  <body>
+    <main class="host-card">
+      <h1>Host website</h1>
+      <p id="host-copy">Aggressive host CSS must remain unchanged.</p>
+      <button id="host-button" type="button">Host button</button>
+    </main>
+    <script>
+      const nativeFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        const url = String(input);
+        if (url.includes('/widget-config')) {
+          return Promise.resolve(new Response(JSON.stringify({
+            primary_color: '#0f9d58',
+            bot_name: 'Acme Support',
+            greeting: 'How can we help?',
+            avatar_url: '/public/favicon.svg',
+            position: 'right',
+            watermark: false
+          }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        }
+        return nativeFetch(input, init);
+      };
+    </script>
+    <script
+      src="/dist/script.umd.cjs?v=2"
+      data-workspace-id="isolation-test"
+      data-widget-token="test-token"
+      data-api-url="http://127.0.0.1:4179/api/v1"
+    ></script>
+  </body>
+</html>

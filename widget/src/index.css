@@ -1,44 +1,66 @@
 @import "tailwindcss";
 
-/*
-  Trang chu (host) co the co CSS toan cuc (vi du p{font-size:...}) anh huong
-  ca vao noi dung <p>/<li>/<h1-6> ma ReactMarkdown render ben trong bubble
-  chat bot - vi day la the thuong, khong phai Tailwind utility class, nen
-  se thang hon class cua minh trong mot so truong hop cascade. Dung
-  !important scope theo #novachat-widget-root de dam bao chu bot luon bang
-  chu cua khach (13px), bat ke CSS trang khach co gi.
-*/
-#novachat-widget-root p,
-#novachat-widget-root li,
-#novachat-widget-root h1,
-#novachat-widget-root h2,
-#novachat-widget-root h3,
-#novachat-widget-root h4,
-#novachat-widget-root h5,
-#novachat-widget-root h6,
-#novachat-widget-root blockquote {
+:host {
+  all: initial;
+  color-scheme: light;
+}
+
+#novachat-widget-mount {
+  --spacing: 4px !important;
+  --text-xs: 12px !important;
+  --text-sm: 14px !important;
+  --radius-lg: 8px !important;
+  --radius-xl: 12px !important;
+  --radius-2xl: 16px !important;
+  color: #0f172a;
+  font-size: 16px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  letter-spacing: 0;
+}
+
+#novachat-widget-mount,
+#novachat-widget-mount *,
+#novachat-widget-mount *::before,
+#novachat-widget-mount *::after {
+  box-sizing: border-box;
+}
+
+#novachat-widget-mount p,
+#novachat-widget-mount li,
+#novachat-widget-mount h1,
+#novachat-widget-mount h2,
+#novachat-widget-mount h3,
+#novachat-widget-mount h4,
+#novachat-widget-mount h5,
+#novachat-widget-mount h6,
+#novachat-widget-mount blockquote {
   font-size: 13px !important;
   line-height: 1.6 !important;
   margin: 0 0 0.4em 0 !important;
   font-family: inherit !important;
 }
 
-#novachat-widget-root h1,
-#novachat-widget-root h2,
-#novachat-widget-root h3,
-#novachat-widget-root h4,
-#novachat-widget-root h5,
-#novachat-widget-root h6 {
+#novachat-widget-mount h1,
+#novachat-widget-mount h2,
+#novachat-widget-mount h3,
+#novachat-widget-mount h4,
+#novachat-widget-mount h5,
+#novachat-widget-mount h6 {
   font-weight: 600 !important;
 }
 
-#novachat-widget-root ul,
-#novachat-widget-root ol {
+#novachat-widget-mount ul,
+#novachat-widget-mount ol {
   font-size: 13px !important;
   padding-left: 1.1em !important;
   margin: 0.2em 0 !important;
 }
 
-#novachat-widget-root p:last-child {
+#novachat-widget-mount p:last-child {
   margin-bottom: 0 !important;
+}
+
+.novachat-input:focus {
+  background: #fff;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--novachat-primary) 20%, transparent);
 }
