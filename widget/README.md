@@ -1,6 +1,6 @@
 # NovaChat AI Embeddable Widget
 
-Widget là React 19 + TypeScript, build bằng Vite Library Mode thành JavaScript UMD và CSS để nhúng vào website khách hàng.
+Widget là React 19 + TypeScript, build bằng Vite Library Mode thành một file JavaScript UMD để nhúng vào website khách hàng.
 
 ## Chạy local
 
@@ -27,7 +27,7 @@ npm.cmd run build
 
 Output chính:
 
-- `dist/script.umd.cjs` — file DUY NHẤT cần nhúng. CSS (Tailwind) được `vite-plugin-css-injected-by-js` (`vite.config.ts`) nhúng thẳng vào file JS này lúc build, tự inject vào `<head>` qua `<style>` khi script chạy — không còn xuất `script.css` riêng, không cần `<link rel="stylesheet">` nào cả. Đây là fix cho lỗi "widget tải được nhưng không hiển thị": DOM mount đúng nhưng nếu thiếu CSS thì mọi class Tailwind (position, size, màu) vô hiệu, layout coi như biến mất.
+- `dist/script.umd.cjs` — file duy nhất cần nhúng. CSS Tailwind được import dạng chuỗi và gắn vào Shadow Root của widget khi script chạy; không tạo `<style>` trong `<head>` và không cần thêm `<link rel="stylesheet">`.
 
 Khi đưa lên CDN, chỉ cần một thẻ script duy nhất ("Plug and Play" — không cần Client Component/useEffect ở bất kỳ framework nào):
 
@@ -65,16 +65,18 @@ Widget chưa có upload avatar, offline queue hoặc Service Worker.
 
 ## Cách ly CSS khỏi trang host
 
-Widget **không** dùng Shadow DOM/iframe (chủ đích, để nhẹ và tương thích rộng nhất — DOM mount
-vào một `<div id="novachat-widget-root">` là sibling độc lập của `<body>`, xem `src/main.tsx`).
-Hệ quả: nội dung bot render qua `ReactMarkdown` ra thẻ HTML thường (`<p>/<li>/<h1-6>`) có thể bị
-CSS toàn cục của trang host nhắm trúng và đè lên class Tailwind của widget (đã gặp thật trên một
-site khách có typography riêng). `src/index.css` có một khối CSS scope theo
-`#novachat-widget-root` với `!important` cho các thẻ này để đảm bảo cỡ chữ luôn khớp thiết kế,
-bất kể CSS trang host là gì — sửa cỡ chữ nội dung bot thì sửa ở khối này, không phải class
-Tailwind trên `App.tsx`.
+`src/main.tsx` tạo `<div id="novachat-widget-root">`, gắn Shadow DOM rồi render React và CSS vào
+Shadow Root. Vì vậy selector/reset của Tailwind không làm biến dạng website khách hàng, đồng thời
+CSS toàn cục của website cũng không thể nhắm vào nút, ảnh, SVG hoặc nội dung Markdown của widget.
 
-Khung chat cố định `w-[340px] h-[480px]` (px, không dùng `rem`, nên không bị ảnh hưởng nếu trang
-host đổi root font-size). Ô nhập là `<textarea>` tự phình cao tối đa `120px` (không phải
-`<input>` — input không thể xuống dòng theo spec HTML khi gõ dài), Enter gửi/Shift+Enter xuống
-dòng qua `form.requestSubmit()`.
+Các token kích thước Tailwind dùng pixel trong `src/index.css`; chúng không phụ thuộc `rem` của
+website khách hàng. Khung chat có kích thước tối đa `340x480px` và tự co theo viewport nhỏ. Ô nhập
+là `<textarea>` tự phình cao tối đa `120px`; Enter gửi và Shift+Enter xuống dòng.
+
+`test-host.html` là trang kiểm thử hồi quy với CSS toàn cục cố tình xung đột. Sau khi build, chạy
+dev server rồi mở trang này để xác nhận website và widget giữ nguyên kiểu dáng riêng:
+
+```powershell
+npm.cmd run build
+npm.cmd run dev -- --host 127.0.0.1 --port 4179
+```
